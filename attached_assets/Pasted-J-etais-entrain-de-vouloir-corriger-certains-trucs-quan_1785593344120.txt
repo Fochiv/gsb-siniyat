@@ -1,0 +1,11 @@
+J'etais entrain de vouloir corriger certains trucs quand mon travail s'est arreter j'aimerais que tu connais si possible . 
+J'essaie d'imprimer un recu generer mais j'ai ce probleme : Parse error: syntax error, unexpected token "?", expecting "->" or "?->" or "{" or "[" in /home/runner/workspace/pdf/receipt.php on line 125
+Ensuite est il possible que tu mette le menu a gauche ? dans les deux pages (Admin comme secretaire)
+dans la page de la secretaire les boutons (Inscrire un élève, Paiements, Rechercher,Changer mon mot de passe) ne ressemble pas a des boutons cliquables
+Et aussi on ne peut pas voir la liste des eleves par classes et imprimer la dite liste, On doit pouvoir selectionner une classe, voir le nombre d'eleves inscrits, nombre d'eleves par sexe, la liste de tous les eleves et pouvoir imprimer la liste des eleves de cette classe specifique dans les deux pages admin comme secretaire. Et tout ceci sans avoir besoin de faire de recherches. 
+Car la secretaire doit pouvoir imprimer les documents si besoin est 
+Quand je clique sur le bouton avec le nom de l'utilisateur dans la page secretaire, elle deborde a gauche (Elle n'est pas responsive) car je ne vois pas toutes les informations
+Le bouton de Deconnexion aussi est un peu trop cache
+Et aussi tres important pour chaque classe on doit preciser section Anglophone ou Francophone car y'a deux sections dans l'etablissement et chaque section est separe de l'autre section. Par exemple les eleves de la SIL (Section Anglophone)ne doivent pas se retrouve parmis les eleves de Class 1 (Section Anglophone) et donc si on choisit la section anglophone, on doit voir (Pre-Nursery, Nursery, De class 1 jusqu'a class 6) et si c'est Francophone on doit voir (Pré-Maternelle, Maternelle, SIL jusqu'au CM2) qui est ce que nous avons actuellement
+Le graphique dans la page Admin est trop grand si on pouvait reduire la taille.
+Notre menu actuel est un peu trop simple je ne vois pas la section ou l’admin peut voir la liste de tous les paiments, nombre de paiement journaliers , avec le nom des differents gerants (Personne qui a recu le paiment avec la date )

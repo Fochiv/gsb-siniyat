@@ -41,7 +41,7 @@ if ($isDuplicate && $data['numero_recu']) {
 }
 
 // Financial situation
-$situation = getSituationFinanciere((int)$data['eleve_id'] ?? 0);
+$situation = getSituationFinanciere((int)($data['eleve_id'] ?? 0));
 
 // Require dompdf via composer
 require_once dirname(__DIR__) . '/vendor/autoload.php';
@@ -78,7 +78,35 @@ $totalPaye = $situation['paye'] ?? 0;
 $reste     = max(0, $situation['reste'] ?? 0);
 $reduction = $situation['tauxReduction'] ?? 0;
 
-$dupBadge = $isDup ? '<div style="text-align:center;margin-bottom:8px;"><span style="background:#f59e0b;color:#fff;padding:4px 12px;border-radius:4px;font-weight:bold;font-size:13px;">'.($isEn?'DUPLICATE':'DUPLICATA').'</span></div>' : '';
+// ---- Pre-compute all label strings (ternaries not allowed inside heredoc) ----
+$lblDupBadge   = $isDup ? '<div style="text-align:center;margin-bottom:8px;"><span style="background:#f59e0b;color:#fff;padding:4px 12px;border-radius:4px;font-weight:bold;font-size:13px;">'.($isEn?'DUPLICATE':'DUPLICATA').'</span></div>' : '';
+$lblTitle      = $isEn ? 'PAYMENT RECEIPT'         : 'REÇU DE PAIEMENT';
+$lblReceiptNo  = $isEn ? 'Receipt No.'             : 'Reçu N°';
+$lblDate       = $isEn ? 'Date'                    : 'Date';
+$lblStudInfo   = $isEn ? 'STUDENT INFORMATION'     : 'INFORMATIONS ÉLÈVE';
+$lblStudId     = $isEn ? 'Student ID'              : 'Matricule';
+$lblClass      = $isEn ? 'Class'                   : 'Classe';
+$lblLastName   = $isEn ? 'Last Name'               : 'Nom';
+$lblFirstName  = $isEn ? 'First Name'              : 'Prénom(s)';
+$lblAcadYear   = $isEn ? 'Academic Year'           : 'Année scolaire';
+$lblPayDetail  = $isEn ? 'PAYMENT DETAILS'         : 'DÉTAIL DU PAIEMENT';
+$lblInstall    = $isEn ? 'Installment'             : 'Tranche';
+$lblAmtPaid    = $isEn ? 'Amount Paid'             : 'Montant versé';
+$lblPayMode    = $isEn ? 'Payment Method'          : 'Mode de paiement';
+$lblAgent      = $isEn ? 'Agent'                   : 'Agent';
+$lblFinSum     = $isEn ? 'FINANCIAL SUMMARY'       : 'RÉCAPITULATIF FINANCIER';
+$lblSig        = $isEn ? 'Signature / Stamp'       : 'Signature / Cachet';
+$lblSecretary  = $isEn ? 'Secretary / Cashier'     : 'Secrétaire / Caissière';
+$lblGenBy      = $isEn ? 'Receipt generated'       : 'Reçu généré le';
+$lblOfficial   = $isEn ? 'This receipt is an official proof of payment.' : 'Ce reçu tient lieu de quittance officielle.';
+$lblDupNote    = $isDup ? '<div style="margin-top:4px;color:#f59e0b;font-weight:bold;">'.($isEn?'DUPLICATE — Not valid as original':'DUPLICATA — Non valable comme original').'</div>' : '';
+$lblRights     = $isEn ? 'All rights reserved'     : 'Tous droits réservés';
+$anneeLibelle  = $data['annee'];
+$agentNom      = $data['agent_nom'];
+$matricule     = $data['matricule'];
+$classeNom     = $data['classe'];
+$nomEleve      = $data['nom'];
+$prenomsEleve  = $data['prenoms'];
 
 $html = <<<HTML
 <!DOCTYPE html>
@@ -113,33 +141,33 @@ $html = <<<HTML
 </head>
 <body>
 <div class="receipt">
-  {$dupBadge}
+  {$lblDupBadge}
   <div class="header">
     <div class="logo-circle"><img src="{$logoB64}" alt="Logo"></div>
     <div>
       <div class="school-name">Groupe Scolaire Bilingue SINIYAT</div>
       <div class="school-sub">Siniyat Bilingual School Group</div>
-      <div class="school-sub">Année scolaire / Academic Year: {$data['annee']}</div>
+      <div class="school-sub">Année scolaire / Academic Year: {$anneeLibelle}</div>
     </div>
   </div>
-  <div class="receipt-title">{$isEn ? 'PAYMENT RECEIPT' : 'REÇU DE PAIEMENT'}</div>
+  <div class="receipt-title">{$lblTitle}</div>
   <div class="receipt-num">
-    <strong>{$isEn ? 'Receipt No.' : 'Reçu N°'} : <span style="color:#0d1b4b;font-size:16px;">{$numRecu}</span></strong>
+    <strong>{$lblReceiptNo} : <span style="color:#0d1b4b;font-size:16px;">{$numRecu}</span></strong>
     &nbsp;&nbsp;|&nbsp;&nbsp;
-    {$isEn ? 'Date' : 'Date'} : {$dateHeure}
+    {$lblDate} : {$dateHeure}
   </div>
 
-  <div class="section-title">{$isEn ? 'STUDENT INFORMATION' : 'INFORMATIONS ÉLÈVE'}</div>
+  <div class="section-title">{$lblStudInfo}</div>
   <table class="info">
-    <tr><td class="label">{$isEn ? 'Student ID' : 'Matricule'}</td><td><strong>{$data['matricule']}</strong></td><td class="label">{$isEn ? 'Class' : 'Classe'}</td><td>{$data['classe']}</td></tr>
-    <tr><td class="label">{$isEn ? 'Last Name' : 'Nom'}</td><td>{$data['nom']}</td><td class="label">{$isEn ? 'First Name' : 'Prénom(s)'}</td><td>{$data['prenoms']}</td></tr>
-    <tr><td class="label">{$isEn ? 'Academic Year' : 'Année scolaire'}</td><td colspan="3">{$data['annee']}</td></tr>
+    <tr><td class="label">{$lblStudId}</td><td><strong>{$matricule}</strong></td><td class="label">{$lblClass}</td><td>{$classeNom}</td></tr>
+    <tr><td class="label">{$lblLastName}</td><td>{$nomEleve}</td><td class="label">{$lblFirstName}</td><td>{$prenomsEleve}</td></tr>
+    <tr><td class="label">{$lblAcadYear}</td><td colspan="3">{$anneeLibelle}</td></tr>
   </table>
 
-  <div class="section-title">{$isEn ? 'PAYMENT DETAILS' : 'DÉTAIL DU PAIEMENT'}</div>
+  <div class="section-title">{$lblPayDetail}</div>
   <table class="info">
-    <tr><td class="label">{$isEn ? 'Installment' : 'Tranche'}</td><td><strong>{$trancheLabel}</strong></td><td class="label">{$isEn ? 'Amount Paid' : 'Montant versé'}</td><td><strong style="color:#0d1b4b;font-size:14px;">__MONTANT_PAIEMENT__ FCFA</strong></td></tr>
-    <tr><td class="label">{$isEn ? 'Payment Method' : 'Mode de paiement'}</td><td>{$modeLabel}</td><td class="label">{$isEn ? 'Agent' : 'Agent'}</td><td>{$data['agent_nom']}</td></tr>
+    <tr><td class="label">{$lblInstall}</td><td><strong>{$trancheLabel}</strong></td><td class="label">{$lblAmtPaid}</td><td><strong style="color:#0d1b4b;font-size:14px;">__MONTANT_PAIEMENT__ FCFA</strong></td></tr>
+    <tr><td class="label">{$lblPayMode}</td><td>{$modeLabel}</td><td class="label">{$lblAgent}</td><td>{$agentNom}</td></tr>
 HTML;
 
 if ($data['mode_paiement'] === 'virement') {
@@ -148,24 +176,30 @@ if ($data['mode_paiement'] === 'virement') {
 }
 
 $statusLabel = $situation['statut']==='paye' ? ($isEn?'Paid in Full':'Soldé') : ($situation['statut']==='partiel' ? ($isEn?'Partial':'Partiel') : ($isEn?'Unpaid':'Impayé'));
-$statusClass = 'status-' . ($situation['statut']??'impaye');
+$statusClass = 'status-' . ($situation['statut'] ?? 'impaye');
 
 $html .= <<<HTML2
   </table>
 
-  <div class="section-title">{$isEn ? 'FINANCIAL SUMMARY' : 'RÉCAPITULATIF FINANCIER'}</div>
+  <div class="section-title">{$lblFinSum}</div>
   <div class="totals">
     <table>
-      <tr><td>{$isEn ? 'Total Due' : 'Total dû'}</td><td style="text-align:right;">
 HTML2;
-$html .= formatMontant($totalDu);
-$html .= "</td></tr>";
+
+$lblTotalDu  = $isEn ? 'Total Due'       : 'Total dû';
+$lblTotalPay = $isEn ? 'Total Paid'      : 'Total payé';
+$lblRemaing  = $isEn ? 'Remaining Balance' : 'Reste à payer';
+$lblStatut   = $isEn ? 'Status'          : 'Statut';
+
+$html .= "<tr><td>{$lblTotalDu}</td><td style='text-align:right;'>".formatMontant($totalDu)."</td></tr>";
 if ($reduction > 0) {
-    $html .= "<tr><td style='color:#d97706;'>".($isEn?"Discount ({$reduction}%)":"Réduction ({$reduction}%)")."</td><td style='text-align:right;color:#d97706;'>- ".formatMontant($situation['montantReduction']??0)."</td></tr>";
+    $lblDiscount = $isEn ? "Discount ({$reduction}%)" : "Réduction ({$reduction}%)";
+    $html .= "<tr><td style='color:#d97706;'>{$lblDiscount}</td><td style='text-align:right;color:#d97706;'>- ".formatMontant($situation['montantReduction']??0)."</td></tr>";
 }
-$html .= "<tr><td>".($isEn?'Total Paid':'Total payé')."</td><td style='text-align:right;color:#065f46;'>".formatMontant($totalPaye)."</td></tr>";
-$html .= "<tr><td class='bold'>".($isEn?'Remaining Balance':'Reste à payer')."</td><td class='bold' style='text-align:right;color:".($reste>0?'#991b1b':'#065f46')."'>".formatMontant($reste)."</td></tr>";
-$html .= "<tr><td colspan='2' style='padding-top:4px;'>Statut : <span class='status-badge {$statusClass}'>{$statusLabel}</span></td></tr>";
+$html .= "<tr><td>{$lblTotalPay}</td><td style='text-align:right;color:#065f46;'>".formatMontant($totalPaye)."</td></tr>";
+$resteColor = $reste > 0 ? '#991b1b' : '#065f46';
+$html .= "<tr><td class='bold'>{$lblRemaing}</td><td class='bold' style='text-align:right;color:{$resteColor};'>".formatMontant($reste)."</td></tr>";
+$html .= "<tr><td colspan='2' style='padding-top:4px;'>{$lblStatut} : <span class='status-badge {$statusClass}'>{$statusLabel}</span></td></tr>";
 
 $html .= <<<HTML3
     </table>
@@ -175,22 +209,22 @@ $html .= <<<HTML3
     <tr>
       <td style="width:55%;">
         <div class="signature-area">
-          <div style="font-size:10px;font-weight:bold;color:#0d1b4b;">{$isEn ? 'Signature / Stamp' : 'Signature / Cachet'}</div>
-          <div style="font-size:9px;margin-top:4px;">{$isEn ? 'Secretary / Cashier' : 'Secrétaire / Caissière'}</div>
-          <div style="margin-top:24px;font-size:10px;">{$data['agent_nom']}</div>
+          <div style="font-size:10px;font-weight:bold;color:#0d1b4b;">{$lblSig}</div>
+          <div style="font-size:9px;margin-top:4px;">{$lblSecretary}</div>
+          <div style="margin-top:24px;font-size:10px;">{$agentNom}</div>
         </div>
       </td>
       <td style="width:45%;padding-left:16px;vertical-align:top;font-size:10px;color:#64748b;">
-        <div><strong>{$isEn?'Receipt generated':'Reçu généré le'} :</strong> {$dateGen}</div>
-        <div style="margin-top:4px;">{$isEn?'This receipt is an official proof of payment.':'Ce reçu tient lieu de quittance officielle.'}</div>
-        {$isDup ? '<div style="margin-top:4px;color:#f59e0b;font-weight:bold;">'.($isEn?'DUPLICATE — Not valid as original':'DUPLICATA — Non valable comme original').'</div>' : ''}
+        <div><strong>{$lblGenBy} :</strong> {$dateGen}</div>
+        <div style="margin-top:4px;">{$lblOfficial}</div>
+        {$lblDupNote}
       </td>
     </tr>
   </table>
 
   <div class="footer-note">
     Groupe Scolaire Bilingue SINIYAT &mdash; gestion-gsb-siniyat.com &mdash;
-    {$isEn ? 'All rights reserved' : 'Tous droits réservés'}
+    {$lblRights}
   </div>
 </div>
 </body>
@@ -204,5 +238,5 @@ $dompdf->loadHtml($html, 'UTF-8');
 $dompdf->setPaper('A4', 'portrait');
 $dompdf->render();
 
-$filename = 'Recu_' . $numRecu . '_' . e($data['matricule']) . '.pdf';
+$filename = 'Recu_' . $numRecu . '_' . $data['matricule'] . '.pdf';
 $dompdf->stream($filename, ['Attachment' => false]);

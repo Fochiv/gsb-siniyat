@@ -183,22 +183,27 @@ include dirname(__DIR__) . '/includes/header.php';
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-8">
                     <label class="form-label" data-i18n="student.classe">Classe / Niveau <span class="text-danger">*</span></label>
-                    <select name="niveau_id" class="form-select" required>
-                        <option value="">-- Sélectionner --</option>
-                        <?php
-                        $lastSection = '';
-                        foreach ($niveaux as $n):
-                            if ($n['section'] !== $lastSection) {
-                                echo '<optgroup label="' . ($n['section'] === 'maternelle' ? 'Maternelle' : 'Primaire') . '">';
-                                $lastSection = $n['section'];
-                            }
-                        ?>
-                        <option value="<?= $n['id'] ?>" <?= ($eleve['niveau_id']??0)==$n['id']?'selected':'' ?>>
-                            <?= e($n['nom_fr']) ?>
+                    <!-- Section selector -->
+                    <div class="btn-group btn-group-sm mb-2 w-100" id="section-toggle">
+                        <button type="button" class="btn btn-outline-primary" onclick="filterSection('francophone', this)">
+                            <i class="bi bi-flag me-1"></i>Francophone
+                        </button>
+                        <button type="button" class="btn btn-outline-success" onclick="filterSection('anglophone', this)">
+                            <i class="bi bi-flag me-1"></i>Anglophone
+                        </button>
+                    </div>
+                    <select name="niveau_id" id="niveau_select" class="form-select" required>
+                        <option value="">-- Sélectionner une section ci-dessus --</option>
+                        <?php foreach ($niveaux as $n): ?>
+                        <option value="<?= $n['id'] ?>"
+                                data-section="<?= e($n['section']) ?>"
+                                <?= ($eleve['niveau_id']??0)==$n['id']?'selected':'' ?>
+                                style="display:none;">
+                            <?= e($n['nom_fr']) ?> <?= $n['section']==='anglophone'?'(EN)':'(FR)' ?>
                         </option>
-                        <?php endforeach; ?></optgroup>
+                        <?php endforeach; ?>
                     </select>
                 </div>
             </div>
@@ -316,10 +321,59 @@ include dirname(__DIR__) . '/includes/header.php';
     <!-- Submit -->
     <div class="d-flex gap-2 justify-content-end">
         <a href="/secretary/search.php" class="btn btn-outline-secondary px-4" data-i18n="common.cancel">Annuler</a>
-        <button type="submit" class="btn btn-primary-siniyat px-5">
+        <button type="submit" class="btn btn-primary-siniyat px-5" onclick="return validateSection()">
             <i class="bi bi-check-lg me-2"></i><span data-i18n="student.save">Enregistrer</span>
         </button>
     </div>
 </form>
 </div>
-<?php include dirname(__DIR__) . '/includes/footer.php'; ?>
+
+<?php
+// Pre-select section if editing existing student
+$editSection = '';
+if ($eleve) {
+    $nv = $db->prepare("SELECT section FROM niveaux WHERE id=?");
+    $nv->execute([$eleve['niveau_id']]);
+    $editSection = (string)($nv->fetchColumn() ?: '');
+}
+$editSectionJs = htmlspecialchars($editSection, ENT_QUOTES);
+
+$extraScripts = <<<JS
+<script>
+function filterSection(section, btn) {
+    // Toggle button styles
+    document.querySelectorAll('#section-toggle .btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    // Show/hide options
+    const sel = document.getElementById('niveau_select');
+    sel.value = '';
+    Array.from(sel.options).forEach(opt => {
+        if (!opt.value) { opt.style.display = ''; return; }
+        opt.style.display = opt.dataset.section === section ? '' : 'none';
+    });
+    sel.options[0].text = '-- Sélectionner une classe --';
+}
+
+function validateSection() {
+    const sel = document.getElementById('niveau_select');
+    if (!sel.value) {
+        sel.classList.add('is-invalid');
+        sel.focus();
+        return false;
+    }
+    return true;
+}
+
+// Auto-select section if editing
+document.addEventListener('DOMContentLoaded', function() {
+    const sec = '{$editSectionJs}';
+    if (sec) {
+        const btn = document.querySelector('#section-toggle .btn[onclick*="' + sec + '"]');
+        if (btn) filterSection(sec, btn);
+    }
+});
+</script>
+JS;
+include dirname(__DIR__) . '/includes/footer.php';
+?>

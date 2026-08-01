@@ -47,7 +47,7 @@ $statRow = $statuts->fetch();
 
 // By class stats
 $byClass = $db->prepare("
-    SELECT n.nom_fr, n.nom_en,
+    SELECT n.id AS niveau_id, n.nom_fr, n.nom_en, n.section,
         COUNT(e.id) AS nb_eleves,
         COALESCE(SUM(CASE WHEN p.annule=FALSE THEN p.montant ELSE 0 END),0) AS total_paye,
         SUM(CASE WHEN e.sexe='M' THEN 1 ELSE 0 END) AS nb_garcons,
@@ -55,7 +55,7 @@ $byClass = $db->prepare("
     FROM niveaux n
     JOIN eleves e ON e.niveau_id = n.id AND e.annee_id = ? AND e.actif = TRUE
     LEFT JOIN paiements p ON p.eleve_id = e.id
-    GROUP BY n.id, n.nom_fr, n.nom_en, n.ordre
+    GROUP BY n.id, n.nom_fr, n.nom_en, n.section, n.ordre
     ORDER BY n.ordre
 ");
 $byClass->execute([$yearId]);
@@ -98,7 +98,7 @@ include dirname(__DIR__) . '/includes/header.php';
         <i class="bi bi-speedometer2"></i> <span data-i18n="dashboard.title">Tableau de bord</span>
     </h1>
     <form class="d-flex align-items-center gap-2">
-        <label class="fw-semibold text-muted small" data-i18n="nav.years">Année :</label>
+        <label class="fw-semibold text-muted small">Année :</label>
         <select name="annee" class="form-select form-select-sm" style="width:140px;" onchange="this.form.submit()">
             <?php foreach ($allYears as $y): ?>
             <option value="<?= $y['id'] ?>" <?= $y['id'] == $yearId ? 'selected' : '' ?>>
@@ -173,9 +173,10 @@ include dirname(__DIR__) . '/includes/header.php';
                         <thead>
                             <tr>
                                 <th data-i18n="fees.class">Classe</th>
-                                <th data-i18n="dashboard.total_students">Élèves</th>
-                                <th data-i18n="common.male">G</th>
-                                <th data-i18n="common.female">F</th>
+                                <th>Sect.</th>
+                                <th data-i18n="dashboard.total_students">Él.</th>
+                                <th>G</th>
+                                <th>F</th>
                                 <th data-i18n="dashboard.total_collected">Encaissé</th>
                                 <th>Actions</th>
                             </tr>
@@ -183,21 +184,26 @@ include dirname(__DIR__) . '/includes/header.php';
                         <tbody>
                             <?php foreach ($classeStats as $cs): ?>
                             <tr>
-                                <td data-label="Classe"><strong><?= e($cs['nom_fr']) ?></strong></td>
-                                <td data-label="Élèves"><?= $cs['nb_eleves'] ?></td>
+                                <td><strong><?= e($cs['nom_fr']) ?></strong></td>
+                                <td>
+                                    <span class="badge <?= $cs['section']==='anglophone'?'badge-anglophone':'badge-francophone' ?>" style="font-size:.65rem;">
+                                        <?= $cs['section']==='anglophone'?'EN':'FR' ?>
+                                    </span>
+                                </td>
+                                <td><?= $cs['nb_eleves'] ?></td>
                                 <td><?= $cs['nb_garcons'] ?></td>
                                 <td><?= $cs['nb_filles'] ?></td>
                                 <td><?= formatMontant((float)$cs['total_paye']) ?></td>
                                 <td>
-                                    <a href="/secretary/search.php?annee_id=<?= $yearId ?>&classe_nom=<?= urlencode($cs['nom_fr']) ?>"
-                                       class="btn btn-sm btn-outline-siniyat btn-action" title="Voir">
+                                    <a href="/secretary/classes.php?annee=<?= $yearId ?>&section=<?= $cs['section'] ?>&niveau=<?= $cs['niveau_id'] ?>"
+                                       class="btn btn-sm btn-outline-siniyat btn-action" title="Voir la liste">
                                         <i class="bi bi-eye"></i>
                                     </a>
                                 </td>
                             </tr>
                             <?php endforeach; ?>
                             <?php if (empty($classeStats)): ?>
-                            <tr><td colspan="6" class="text-center text-muted py-4" data-i18n="common.no_data">Aucune donnée.</td></tr>
+                            <tr><td colspan="7" class="text-center text-muted py-4">Aucune donnée.</td></tr>
                             <?php endif; ?>
                         </tbody>
                     </table>
@@ -210,22 +216,25 @@ include dirname(__DIR__) . '/includes/header.php';
             <div class="card-header bg-primary-siniyat text-white">
                 <i class="bi bi-pie-chart me-2"></i><span data-i18n="dashboard.financial_summary">Répartition</span>
             </div>
-            <div class="card-body d-flex align-items-center justify-content-center">
-                <canvas id="paymentChart" width="260" height="260"></canvas>
+            <div class="card-body d-flex align-items-center justify-content-center" style="max-height:260px;">
+                <canvas id="paymentChart" style="max-height:220px;max-width:220px;"></canvas>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Monthly chart -->
+<!-- Monthly chart — taille réduite -->
 <div class="row g-3 mb-4">
     <div class="col-12">
         <div class="card">
-            <div class="card-header bg-primary-siniyat text-white">
-                <i class="bi bi-graph-up me-2"></i>Évolution des encaissements
+            <div class="card-header bg-primary-siniyat text-white d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-graph-up me-2"></i>Évolution des encaissements</span>
+                <a href="/admin/payments.php?annee=<?= $yearId ?>" class="btn btn-sm btn-light">
+                    <i class="bi bi-receipt-cutoff me-1"></i>Tous les paiements
+                </a>
             </div>
-            <div class="card-body">
-                <canvas id="monthlyChart" height="100"></canvas>
+            <div class="card-body" style="height:200px;">
+                <canvas id="monthlyChart" style="max-height:170px;"></canvas>
             </div>
         </div>
     </div>
@@ -233,8 +242,9 @@ include dirname(__DIR__) . '/includes/header.php';
 
 <!-- Recent payments -->
 <div class="card">
-    <div class="card-header bg-primary-siniyat text-white">
-        <i class="bi bi-clock-history me-2"></i><span data-i18n="dashboard.recent_payments">Paiements récents</span>
+    <div class="card-header bg-primary-siniyat text-white d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history me-2"></i>Paiements récents</span>
+        <a href="/admin/payments.php?annee=<?= $yearId ?>" class="btn btn-sm btn-light">Voir tout</a>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -242,13 +252,13 @@ include dirname(__DIR__) . '/includes/header.php';
                 <thead>
                     <tr>
                         <th>Reçu N°</th>
-                        <th data-i18n="student.matricule">Matricule</th>
-                        <th data-i18n="student.nom">Élève</th>
-                        <th data-i18n="fees.class">Classe</th>
-                        <th data-i18n="payment.amount">Montant</th>
-                        <th data-i18n="payment.mode">Mode</th>
-                        <th data-i18n="audit.user">Agent</th>
-                        <th data-i18n="audit.date">Date</th>
+                        <th>Matricule</th>
+                        <th>Élève</th>
+                        <th>Classe</th>
+                        <th>Montant</th>
+                        <th>Mode</th>
+                        <th>Agent</th>
+                        <th>Date</th>
                         <th></th>
                     </tr>
                 </thead>
@@ -280,7 +290,7 @@ include dirname(__DIR__) . '/includes/header.php';
                     </tr>
                     <?php endforeach; ?>
                     <?php if (empty($recentPayments)): ?>
-                    <tr><td colspan="9" class="text-center text-muted py-4" data-i18n="common.no_data">Aucun paiement.</td></tr>
+                    <tr><td colspan="9" class="text-center text-muted py-4">Aucun paiement.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -310,9 +320,13 @@ new Chart(document.getElementById('paymentChart'), {
             borderWidth: 2, borderColor: '#fff'
         }]
     },
-    options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
+    }
 });
-// Monthly chart
+// Monthly chart — réduit
 new Chart(document.getElementById('monthlyChart'), {
     type: 'bar',
     data: {
@@ -322,8 +336,11 @@ new Chart(document.getElementById('monthlyChart'), {
             borderWidth: 1, borderRadius: 4
         }]
     },
-    options: { responsive: true, plugins: { legend: { display: false } },
-        scales: { y: { ticks: { callback: v => new Intl.NumberFormat('fr').format(v) } } }
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { ticks: { callback: v => new Intl.NumberFormat('fr').format(v), font: { size: 10 } } } }
     }
 });
 </script>

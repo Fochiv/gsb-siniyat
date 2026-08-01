@@ -46,7 +46,7 @@ include dirname(__DIR__) . '/includes/header.php';
 <!-- Quick stats -->
 <div class="row g-3 mb-4">
     <div class="col-sm-4">
-        <div class="card stat-card">
+        <div class="card stat-card h-100">
             <div class="card-body d-flex align-items-center justify-content-between">
                 <div>
                     <div class="text-muted small">Inscriptions aujourd'hui</div>
@@ -57,7 +57,7 @@ include dirname(__DIR__) . '/includes/header.php';
         </div>
     </div>
     <div class="col-sm-4">
-        <div class="card stat-card stat-success">
+        <div class="card stat-card stat-success h-100">
             <div class="card-body d-flex align-items-center justify-content-between">
                 <div>
                     <div class="text-muted small">Paiements aujourd'hui</div>
@@ -68,7 +68,7 @@ include dirname(__DIR__) . '/includes/header.php';
         </div>
     </div>
     <div class="col-sm-4">
-        <div class="card stat-card stat-success">
+        <div class="card stat-card stat-success h-100">
             <div class="card-body d-flex align-items-center justify-content-between">
                 <div>
                     <div class="text-muted small">Total encaissé aujourd'hui</div>
@@ -80,31 +80,36 @@ include dirname(__DIR__) . '/includes/header.php';
     </div>
 </div>
 
-<!-- Quick actions -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-md-3">
-        <a href="/secretary/students.php" class="card text-decoration-none text-center p-3 h-100 d-flex flex-column align-items-center justify-content-center gap-2" style="border:2px dashed var(--siniyat-primary);">
-            <i class="bi bi-person-plus fs-2 text-primary-siniyat"></i>
-            <span class="fw-semibold text-primary-siniyat small" data-i18n="nav.new_student">Inscrire un élève</span>
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a href="/secretary/payments.php" class="card text-decoration-none text-center p-3 h-100 d-flex flex-column align-items-center justify-content-center gap-2" style="border:2px dashed var(--siniyat-success);">
-            <i class="bi bi-cash-coin fs-2 text-success"></i>
-            <span class="fw-semibold text-success small" data-i18n="nav.payments">Enregistrer paiement</span>
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a href="/secretary/search.php" class="card text-decoration-none text-center p-3 h-100 d-flex flex-column align-items-center justify-content-center gap-2" style="border:2px dashed #64748b;">
-            <i class="bi bi-search fs-2 text-muted"></i>
-            <span class="fw-semibold text-muted small" data-i18n="nav.search">Rechercher élève</span>
-        </a>
-    </div>
-    <div class="col-6 col-md-3">
-        <a href="/change_password.php" class="card text-decoration-none text-center p-3 h-100 d-flex flex-column align-items-center justify-content-center gap-2" style="border:2px dashed #64748b;">
-            <i class="bi bi-key fs-2 text-muted"></i>
-            <span class="fw-semibold text-muted small" data-i18n="nav.change_password">Mon mot de passe</span>
-        </a>
+<!-- Quick actions — vrais boutons cliquables -->
+<div class="mb-4">
+    <h6 class="text-muted fw-semibold mb-3 small text-uppercase" style="letter-spacing:.06em;">
+        <i class="bi bi-lightning me-1"></i>Actions rapides
+    </h6>
+    <div class="row g-3">
+        <div class="col-6 col-md-3">
+            <a href="/secretary/students.php" class="quick-action-card primary h-100">
+                <i class="bi bi-person-plus"></i>
+                <span data-i18n="nav.new_student">Inscrire un élève</span>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="/secretary/payments.php" class="quick-action-card success h-100">
+                <i class="bi bi-cash-coin"></i>
+                <span data-i18n="nav.payments">Enregistrer paiement</span>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="/secretary/search.php" class="quick-action-card neutral h-100">
+                <i class="bi bi-search"></i>
+                <span data-i18n="nav.search">Rechercher élève</span>
+            </a>
+        </div>
+        <div class="col-6 col-md-3">
+            <a href="/secretary/classes.php" class="quick-action-card warning h-100">
+                <i class="bi bi-list-ul"></i>
+                <span>Liste par classe</span>
+            </a>
+        </div>
     </div>
 </div>
 
@@ -131,13 +136,13 @@ include dirname(__DIR__) . '/includes/header.php';
                 <tbody>
                     <?php foreach ($recentPayments as $p): ?>
                     <tr>
-                        <td><span class="badge bg-secondary">#<?= e($p['numero_recu'] ?? '—') ?></span></td>
-                        <td><code><?= e($p['matricule']) ?></code></td>
-                        <td><?= e($p['nom'] . ' ' . $p['prenoms']) ?></td>
-                        <td><?= e($p['classe']) ?></td>
-                        <td class="fw-semibold"><?= formatMontant((float)$p['montant']) ?></td>
-                        <td><?= $p['mode_paiement'] === 'especes' ? '<i class="bi bi-cash text-success"></i> Espèces' : '<i class="bi bi-bank text-info"></i> Virement' ?></td>
-                        <td class="text-muted small"><?= date('d/m/Y H:i', strtotime($p['date_paiement'])) ?></td>
+                        <td data-label="Reçu"><span class="badge bg-secondary">#<?= e($p['numero_recu'] ?? '—') ?></span></td>
+                        <td data-label="Matricule"><code><?= e($p['matricule']) ?></code></td>
+                        <td data-label="Élève"><?= e($p['nom'] . ' ' . $p['prenoms']) ?></td>
+                        <td data-label="Classe"><?= e($p['classe']) ?></td>
+                        <td data-label="Montant" class="fw-semibold"><?= formatMontant((float)$p['montant']) ?></td>
+                        <td data-label="Mode"><?= $p['mode_paiement'] === 'especes' ? '<i class="bi bi-cash text-success"></i> Espèces' : '<i class="bi bi-bank text-info"></i> Virement' ?></td>
+                        <td data-label="Date" class="text-muted small"><?= date('d/m/Y H:i', strtotime($p['date_paiement'])) ?></td>
                         <td>
                             <?php if ($p['numero_recu']): ?>
                             <a href="/pdf/receipt.php?paiement_id=<?= $p['id'] ?>" target="_blank"
