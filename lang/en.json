@@ -1,0 +1,125 @@
+{
+  "app": { "year": "2026-2027", "name": "GSB SINIYAT" },
+  "nav": {
+    "dashboard": "Dashboard", "students": "Students", "new_student": "Enroll Student",
+    "search": "Search", "payments": "Payments", "admin": "Administration",
+    "users": "Users", "classes": "Classes & Levels", "fees": "Fee Structure",
+    "years": "Academic Years", "audit": "Audit Log",
+    "change_password": "Change Password", "logout": "Logout"
+  },
+  "login": {
+    "school_name": "Siniyat Bilingual School Group", "system": "School Management System",
+    "username": "Username", "password": "Password", "submit": "Sign In",
+    "error_invalid": "Invalid username or password.",
+    "timeout_msg": "Session expired. Please sign in again.", "forbidden": "Access denied."
+  },
+  "password": {
+    "title": "Change Password", "old": "Current Password",
+    "new": "New Password", "confirm": "Confirm New Password",
+    "hint": "Min. 8 characters, 1 uppercase, 1 digit.", "save": "Save",
+    "success": "Password changed successfully.",
+    "error_old": "Current password is incorrect.",
+    "error_length": "New password must be at least 8 characters.",
+    "error_complexity": "Password must contain at least one uppercase letter and one digit.",
+    "error_match": "Passwords do not match."
+  },
+  "session": {
+    "warning_title": "Session expiring soon",
+    "warning_msg": "Your session expires in 2 minutes. Click to stay signed in.",
+    "extend": "Stay signed in"
+  },
+  "footer": { "rights": "All rights reserved" },
+  "dashboard": {
+    "title": "Dashboard", "total_students": "Enrolled Students",
+    "total_collected": "Total Collected", "total_remaining": "Outstanding Balance",
+    "paid_full": "Paid in Full", "partial": "Partial", "unpaid": "Unpaid",
+    "by_class": "By Class", "recent_payments": "Recent Payments",
+    "financial_summary": "Financial Summary"
+  },
+  "student": {
+    "title": "Student File", "new": "Enroll Student", "edit": "Edit",
+    "matricule": "Student ID", "nom": "Last Name", "prenoms": "First Name(s)",
+    "sexe": "Gender", "sexe_m": "Male", "sexe_f": "Female",
+    "date_naissance": "Date of Birth", "lieu_naissance": "Place of Birth",
+    "quartier": "Neighborhood", "adresse": "Address",
+    "nom_pere": "Father's Name", "tel_pere": "Father's Phone",
+    "nom_mere": "Mother's Name", "tel_mere": "Mother's Phone",
+    "nom_tuteur": "Legal Guardian", "tel_tuteur": "Guardian's Phone",
+    "contact_urgence": "Emergency Contact",
+    "classe": "Class / Level", "annee": "Academic Year",
+    "statut": "Status", "nouveau": "New", "ancien": "Returning", "redoublant": "Repeating",
+    "documents": "Administrative Documents",
+    "photos_identite": "4 ID photos",
+    "acte_naissance": "Birth certificate / Passport copy",
+    "carnet_vaccination": "Vaccination card (Nursery)",
+    "certificat_transfert": "Transfer certificate (Primary)",
+    "livret_scolaire": "Previous school report",
+    "certificat_medical": "Medical certificate (Nursery)",
+    "select_all": "Select all",
+    "save": "Save", "saved": "Student saved successfully.",
+    "search_placeholder": "Name, ID or class...",
+    "financial_status": "Financial Status",
+    "payment_history": "Payment History"
+  },
+  "payment": {
+    "title": "Record Payment", "amount": "Amount Paid",
+    "installment": "Installment", "mode": "Payment Method",
+    "cash": "Cash", "bank": "Bank Transfer / Deposit",
+    "bank_name": "Bank Name", "bank_ref": "Bank Reference",
+    "bank_date": "Deposit Date", "date": "Payment Date",
+    "notes": "Notes", "save": "Save Payment",
+    "saved": "Payment recorded successfully.",
+    "receipt": "Print Receipt", "duplicate": "Duplicate",
+    "total_due": "Total Due", "total_paid": "Total Paid", "remaining": "Remaining Balance",
+    "status_paid": "Paid", "status_partial": "Partial", "status_unpaid": "Unpaid",
+    "reduction": "Applied Discount", "reduction_full": "Full payment (-2%)",
+    "reduction_sibling": "Siblings (-2% per additional child)"
+  },
+  "receipt": {
+    "title": "PAYMENT RECEIPT", "number": "Receipt No.", "duplicate": "DUPLICATE",
+    "student": "Student", "class": "Class", "year": "Academic Year",
+    "amount_paid": "Amount Paid", "installment": "Installment",
+    "payment_mode": "Payment Method", "bank_ref": "Bank Reference",
+    "total_due": "Total Due", "total_paid": "Total Paid", "remaining": "Remaining",
+    "reductions": "Applied Discounts", "agent": "Agent", "date": "Date & Time",
+    "signature": "Signature / Stamp", "print": "Print"
+  },
+  "fees": {
+    "title": "Fee Structure", "class": "Class", "installment": "Installment",
+    "amount": "Amount", "deadline": "Deadline", "inscription": "Registration Fee",
+    "total": "Total", "save": "Save", "saved": "Fee structure updated."
+  },
+  "user": {
+    "title": "Users", "new": "Create Account",
+    "nom": "Last Name", "prenom": "First Name", "login": "Username",
+    "role": "Role", "admin": "Administrator", "secretary": "Secretary / Cashier",
+    "active": "Active", "inactive": "Inactive",
+    "password": "Password", "reset_password": "Reset Password",
+    "save": "Save", "saved": "Account saved.",
+    "deactivate": "Deactivate", "activate": "Activate", "delete": "Delete"
+  },
+  "audit": {
+    "title": "Audit Log", "user": "User", "action": "Action",
+    "entity": "Entity", "details": "Details", "date": "Date / Time",
+    "filter_user": "Filter by user", "filter_action": "Filter by action",
+    "filter_date": "Filter by date"
+  },
+  "year": {
+    "title": "Academic Years", "new": "New Academic Year",
+    "create": "Create Year", "active": "Active Year",
+    "closed": "Closed", "set_active": "Set as Active",
+    "copy_from": "Copies structure from previous year",
+    "promote": "Mass Student Promotion"
+  },
+  "export": { "excel": "Export Excel", "csv": "Export CSV" },
+  "common": {
+    "actions": "Actions", "view": "View", "edit": "Edit", "delete": "Delete",
+    "confirm_delete": "Are you sure you want to delete?",
+    "yes": "Yes", "no": "No", "cancel": "Cancel", "save": "Save",
+    "search": "Search", "filter": "Filter", "reset": "Reset",
+    "loading": "Loading...", "no_data": "No data.",
+    "success": "Operation successful.", "error": "An error occurred.",
+    "required": "This field is required.", "all_classes": "All classes",
+    "all_years": "All years", "male": "Boys", "female": "Girls"
+  }
+}

@@ -1,0 +1,218 @@
+PROMPT COMPLET — Système de Gestion des Inscriptions et Finances Scolaires
+Groupe Scolaire Bilingue SINIYAT — Année scolaire 2026-2027
+________________________________________
+0. CONTEXTE
+Développer une application web complète (avec version PWA installable) pour la gestion des inscriptions, des finances et des élèves du Groupe Scolaire Bilingue Siniyat (Maternelle et Primaire). L'application doit être simple, fiable, traçable, sécurisée, multilingue (FR/EN) et responsive (mobile, tablette, PC). Utiliser les icones jamais des emojis dans le système. Tu mets aussi le logo dans un cercle (Forme circulaire).
+Devise et académie : Année scolaire 2026-2027, réductions déjà connues :
+•	2% de réduction sur les frais de scolarité en cas de paiement complet (en une fois)
+•	2% de réduction supplémentaire par enfant additionnel de la même famille
+________________________________________
+1. STACK TECHNIQUE
+•	Backend : PHP (PDO obligatoire, requêtes préparées uniquement, aucune concaténation SQL)
+•	Frontend : HTML5, CSS3, Bootstrap 5, JavaScript (vanilla ou léger, pas de framework lourd)
+•	Base de données : MySQL 
+•	PDF : librairie type TCPDF, mPDF ou Dompdf pour la génération des reçus
+•	PWA : manifest.json + service worker pour installation sur mobile/PC et usage semi-hors-ligne (consultation des données déjà chargées)
+•	Sécurité : 
+o	Requêtes préparées PDO partout (protection injections SQL)
+o	Mots de passe hashés (password_hash / password_verify)
+o	Protection CSRF sur tous les formulaires
+o	Sessions PHP sécurisées (session_regenerate_id, cookies httponly, secure)
+o	Échappement systématique des sorties (protection XSS)
+o	Déconnexion automatique après 10 minutes d'inactivité (gestion JS + vérification serveur côté session)
+o	Journalisation de toutes les actions sensibles (voir section 8)
+________________________________________
+2. RÔLES ET UTILISATEURS
+2.1 Administrateur (Directeur/Directrice)
+•	Accès complet à toutes les données et statistiques de l'établissement
+•	Gestion des utilisateurs : 
+o	Créer un compte Secrétaire/Caissière (nom, login, mot de passe choisi)
+o	Modifier, désactiver ou supprimer un compte utilisateur
+o	Réinitialiser, modifier le mot de passe d'un utilisateur
+•	Peut changer son propre mot de passe
+•	Bouton de déconnexion visible en permanence
+•	Accès à l'historique de connexion de tous les comptes (Admin et Secrétaires)
+•	Gestion académique : création des classes, des niveaux, des années scolaires, des montants de frais par classe
+•	Gestion de frais par classe
+•	Gestion des pourcentages de réduction 
+•	Accès à toutes les statistiques financières et académiques
+•	Export des données (Excel/CSV) et sauvegarde manuelle de la base de données
+2.2 Secrétaire / Caissière
+•	Accès à l'interface d'inscription des élèves
+•	Accès à l'encaissement des paiements (tranches)
+•	Génération et impression des reçus
+•	Recherche d'élèves et consultation de leur situation financière
+•	Ne voit que les fonctionnalités liées à l'inscription et à la caisse (pas la gestion des utilisateurs, pas les paramètres globaux de l'école)
+•	Déconnexion automatique après 10 min d'inactivité
+________________________________________
+3. GESTION DES ÉLÈVES (Fiche complète)
+Chaque élève doit avoir une fiche avec au minimum :
+Identité
+•	Matricule (généré automatiquement, unique, non modifiable)
+•	Nom, Prénom(s)
+•	Sexe (Masculin ou Féminin)
+•	Date et lieu de naissance
+•	Classe / Niveau (Petite Section, Moyenne Section, Grande Section, SIL, CP, CE1, CE2, CM1, CM2, etc.)
+•	Année scolaire d'inscription
+•	Statut (nouveau / ancien élève, redoublant, etc.)
+Résidence et famille
+•	Quartier de résidence / Adresse
+•	Nom du père — numéro de téléphone du père
+•	Nom de la mère — numéro de téléphone de la mère
+•	Tuteur légal (si différent), avec numéro
+•	Contact d'urgence
+Documents administratifs (case à cocher "fourni/non fourni") avec bouton tout sélectionner
+•	4 photos d'identité
+•	Photocopie acte de naissance ou passeport
+•	Photocopie carnet de vaccination (Maternelle uniquement)
+•	Certificat de transfert (Primaire)
+•	Livret scolaire de l'école précédente
+•	Certificat médical (Maternelle)
+Financier (lié automatiquement, voir section 4)
+•	Statut de paiement en temps réel : Payé intégralement / Partiellement payé / Non payé
+•	Historique des tranches versées
+La fiche doit être modifiable par la Secrétaire/Admin et consultable en un clic via la recherche.
+________________________________________
+4. GESTION FINANCIÈRE (module prioritaire)
+4.1 Structure des frais (configurable par l'Admin, par classe et par année scolaire)
+La grille de frais doit être paramétrable par l'Admin, pas codée en dur, car elle peut changer chaque année. Pour l'année 2026-2027, la grille officielle (tirée de la brochure) est la suivante :
+Classe	1ère Tranche (Septembre)	2ème Tranche (Déc.-Janv.)	Autres frais (après inscription)	Total
+Pré-Maternelle / Pre-Nursery	50 000 FCFA	15 000 FCFA	5 000 FCFA	70 000 FCFA
+Maternelle / Nursery	35 000 FCFA	20 000 FCFA	5 000 FCFA	60 000 FCFA
+SIL au CM2 / Class 1 to Class 6	30 000 FCFA	15 000 FCFA	5 000 FCFA	50 000 FCFA
+Règles particulières à intégrer :
+•	Le CM2 / Class Six doit être intégralement soldé avant le dépôt du dossier d'examen (le système doit pouvoir alerter si un élève de CM2 a un reste à payer au moment de la génération de la liste des candidats à l'examen).
+•	Les "Autres frais" sont dus après l'inscription (pas au moment de la 1ère tranche) — à modéliser comme une échéance distincte, pas fusionnée avec la tranche 1.
+•	Le nombre de tranches (ici 2 + autres frais) doit être paramétrable par l'Admin : pour une classe donnée et une année donnée, l'Admin définit le nombre de tranches, leur montant et leur échéance indicative (une classe pourrait avoir 2, 3 ou 4 tranches selon les années).
+•	Frais d'inscription : si un frais d'inscription distinct existe en plus du tableau ci-dessus, il doit rester configurable (champ optionnel, à 0 par défaut si non utilisé).
+•	Frais annexes optionnels supplémentaires (cantine, transport, uniforme...) : activables individuellement par élève, en plus de la grille de base.
+•	Réduction automatique de 2% par enfant supplémentaire de la même famille (le système doit pouvoir lier des fratries).
+•	Réduction de 2% sur le total en cas de paiement intégral en une seule fois.
+4.2 Enregistrement des paiements
+•	Chaque paiement crée une transaction horodatée liée à l'élève
+•	Date et heure du jour modifiables manuellement par l'utilisateur 
+•	Mode de paiement : 
+o	Espèces (présentiel) — encaissement manuel direct
+o	Virement/Dépôt bancaire — champ supplémentaire à remplir : 
+	Nom de la banque (pré-rempli par défaut avec Rural Investment Credit SA, N° Compte 37183-01000-016892-01, modifiable si un autre compte est ajouté un jour)
+	Référence / numéro de transaction bancaire (fournie par le parent/déposant)
+	Date du dépôt/virement
+o	Le système n'intègre aucune API de paiement : il s'agit uniquement d'un enregistrement manuel du paiement bancaire déjà effectué ailleurs (dépôt à la banque), avec preuve archivée. Le montant est comptabilisé exactement comme un paiement espèces dans les totaux.
+•	Calcul automatique après chaque paiement : 
+o	Montant total dû
+o	Montant déjà payé (cumul de toutes les tranches, tous modes confondus)
+o	Reste à payer
+o	Statut mis à jour automatiquement (Payé / Partiel / Impayé)
+4.3 Génération du reçu (PDF)
+Pour chaque transaction de paiement, génération automatique d'un reçu PDF contenant :
+•	Logo et en-tête de l'école (couleurs de la brochure)
+•	Numéro de reçu unique et séquentiel, non modifiable (traçabilité)
+•	Infos élève (nom, prénom, matricule, classe)
+•	Détail du paiement : montant versé, tranche concernée, mode de paiement
+•	Si paiement bancaire : référence bancaire affichée sur le reçu
+•	Montant total dû, total déjà payé, reste à payer
+•	Réductions appliquées (le cas échéant)
+•	Date, heure, nom de l'agent ayant encaissé
+•	Signature/cachet (zone réservée)
+•	Bouton "Imprimer le Reçu" disponible immédiatement après chaque encaissement, et aussi depuis la fiche élève (réimpression possible avec mention "Duplicata")
+________________________________________
+5. GESTION DES ANNÉES ACADÉMIQUES (pour ne jamais retoucher le code)
+Principe : l'année scolaire est une donnée, pas une valeur codée en dur. Toutes les tables importantes (classes, frais, tranches, eleves, paiements) sont rattachées à un annee_scolaire_id. Ainsi, ouvrir une nouvelle année ne demande aucune intervention sur le code, seulement une action dans l'interface Admin.
+5.1 Workflow "Nouvelle année scolaire" (bouton dans l'espace Admin)
+1.	L'Admin clique sur "Créer une nouvelle année scolaire" (ex : 2027-2028).
+2.	Le système copie automatiquement la structure de l'année précédente vers la nouvelle année, mais sans les données personnelles : 
+o	Les classes/niveaux (Pré-Maternelle, Maternelle, SIL...CM2, etc.)
+o	La grille de frais et le nombre de tranches (l'Admin peut ensuite les modifier si les montants changent)
+o	Aucun élève, aucun paiement n'est copié — la nouvelle année démarre avec des effectifs et des compteurs financiers à zéro, comme demandé.
+3.	L'année précédente est automatiquement archivée (passage en statut "clôturée", non supprimée) — toutes ses données restent consultables en lecture seule pour l'historique, les statistiques comparatives et les besoins d'audit.
+4.	Une seule année est marquée "active" à la fois : c'est celle utilisée par défaut sur les pages d'inscription et de caisse. Un sélecteur d'année (visible surtout côté Admin) permet de consulter les années passées sans jamais les modifier.
+5.2 Passage des élèves d'une année à l'autre (option utile à prévoir)
+Puisque beaucoup d'élèves reviennent d'une année sur l'autre, prévoir une fonctionnalité de "promotion en masse" :
+•	L'Admin sélectionne une classe de l'année précédente (ex : "CP - 2026/2027") et choisit la classe de destination (ex : "CE1 - 2027/2028").
+•	Le système recrée les fiches des élèves sélectionnés dans la nouvelle année (même matricule ou nouveau, à décider), avec leurs informations personnelles reprises, mais avec une situation financière totalement neuve (aucune tranche, aucun paiement importé).
+•	Cela évite de ressaisir manuellement les élèves redoublants/passants chaque année tout en garantissant que les compteurs financiers repartent bien à zéro.
+5.3 Ce qui ne doit jamais disparaître
+•	Les statistiques et reçus des années passées restent consultables et réimprimables à tout moment (utile en cas de litige ou de contrôle).
+•	Le journal d'audit n'est jamais réinitialisé, même en cas de nouvelle année.
+________________________________________
+6. TABLEAUX DE BORD ET STATISTIQUES
+Dashboard Admin
+•	Somme totale collectée (établissement entier)
+•	Somme collectée par salle/classe, avec détail des élèves ayant payé intégralement / partiellement / rien
+•	Nombre total d'élèves inscrits (établissement)
+•	Nombre d'élèves par classe
+•	Répartition par sexe (global et par classe)
+•	Montant total restant à recouvrer (impayés) — avec liste des élèves concernés
+•	Graphiques (barres/camemberts) : répartition des paiements, évolution des encaissements dans le temps
+•	Filtre par année scolaire, par classe, par période
+Dashboard Secrétaire/Caissière
+•	Vue simplifiée : élèves inscrits par elle, paiements du jour, recherche rapide
+Recherche élève (accessible aux deux rôles)
+•	Recherche par nom, matricule ou classe
+•	Résultat : fiche complète + situation financière + historique des paiements + bouton "Imprimer reçu"
+Export par classe
+•	Sur chaque page "Classe" (ou depuis le dashboard), bouton "Exporter la liste des élèves" de la classe sélectionnée
+•	Formats : Excel (.xlsx) et CSV
+•	Colonnes exportées : matricule, nom, prénom, sexe, date de naissance, contacts parents, statut financier (payé/partiel/reste à payer).
+•	Utile pour listes de classe, dossiers d'examen (ex. liste des CM2 soldés), impressions administratives
+________________________________________
+7. AUTHENTIFICATION ET SÉCURITÉ
+•	Page de connexion unique avec redirection selon le rôle
+•	Mot de passe : complexité minimale imposée, hashé en base
+•	Déconnexion automatique après 10 minutes d'inactivité 
+•	Bouton de déconnexion manuel toujours visible
+•	Changement de mot de passe personnel (Admin et Secrétaire)
+•	Historique de connexion : date, heure, utilisateur, succès/échec
+________________________________________
+8. MULTILINGUE (FR/EN) pas besoin de recharger la page et stockage de la langue choisit par l’utilisateur
+•	Langue par défaut : Français
+•	Sélecteur de langue accessible sur toutes les pages
+•	Tous les textes, labels, messages d'erreur et reçus PDF doivent exister dans les deux langues
+•	Structure recommandée : fichiers de traduction (fr.json / en.json) chargés dynamiquement
+________________________________________
+9. TRAÇABILITÉ / JOURNAL D'AUDIT
+Journal (log) enregistrant automatiquement :
+•	Connexions/déconnexions (utilisateur, date/heure, statut)
+•	Création/modification/suppression d'une fiche élève
+•	Chaque paiement enregistré (avec l'auteur)
+•	Création/modification/désactivation de compte utilisateur
+•	Consultable uniquement par l'Admin, avec filtres par utilisateur/date/type d'action
+________________________________________
+10. PWA (Progressive Web App) — et la question du fonctionnement hors-connexion
+Le système sera hébergé en ligne(gestion-gsb-siniyat.com). Voici ce qui est réaliste ou non concernant un usage local/hors-ligne :
+Ce qu'une PWA peut faire même hébergée en ligne :
+•	Être installée comme une application (icône sur le bureau/l'écran d'accueil, sans barre de navigateur)
+•	Mettre en cache l'interface (pages, styles, scripts) pour un chargement rapide et pour continuer à consulter les dernières données déjà synchronisées (fiches élèves, tableaux de bord) même en cas de coupure réseau brève
+•	Fonctionner correctement dès qu'une connexion internet (même faible, 3G/4G/Wi-Fi) est disponible
+Ce qui est déconseillé pour ce système précis :
+•	Permettre l'enregistrement de paiements en argent pendant une coupure réseau totale, avec synchronisation automatique plus tard. C'est techniquement possible (stockage local IndexedDB + Background Sync API), mais risqué pour un système financier : deux caissières pourraient encaisser sur le même élève en simultané hors-ligne, ou un numéro de reçu pourrait être dupliqué avant la synchronisation. Pour de l'argent réel et des reçus officiels, la fiabilité prime sur la disponibilité hors-ligne totale.
+Recommandation retenue pour ce projet :
+•	La consultation (fiches élèves, statistiques déjà chargées) reste possible en mode hors-ligne grâce au cache PWA.
+•	L'encaissement d'un paiement et la génération d'un reçu exigent une connexion active, pour garantir un numéro de reçu unique et des totaux toujours exacts en temps réel — ce qui est essentiel vu la sensibilité financière du système.
+•	En pratique, pour une école connectée en 3G/4G/Wi-Fi, cette contrainte n'est pas gênante : l'application reste rapide, installable, utilisable au quotidien comme une vraie appli, uniquement l'écriture de paiement demande le réseau (quelques secondes).
+•	Si un vrai fonctionnement 100% local (sans aucune connexion, même pour encaisser) devient indispensable plus tard, la solution serait une application de bureau locale (ex. avec synchronisation périodique vers le serveur en ligne) — c'est un projet différent, à envisager séparément si le besoin se confirme.
+Éléments techniques à livrer :
+•	manifest.json avec nom, icônes (logo Siniyat), couleur de thème reprenant la charte graphique
+•	Installable sur mobile (Android/iOS via navigateur) et sur PC (Chrome/Edge)
+•	Service worker pour la mise en cache des ressources statiques et des dernières données consultées
+________________________________________
+11. DESIGN / CHARTE GRAPHIQUE
+À reprendre depuis la brochure officielle du Groupe Scolaire Bilingue Siniyat :
+•	Couleur principale : bleu marine profond 
+•	Couleur secondaire : blanc (textes sur fond bleu, espaces de respiration)
+•	Logo de l'école en en-tête de toutes les pages et sur les reçus PDF
+•	Typographie claire, lisible, interface épurée pensée pour des utilisateurs non techniques (secrétaires/caissières)
+•	Boutons larges, formulaires simples, messages de confirmation clairs après chaque action
+________________________________________
+Contrainte importante : le numero_recu doit être auto-incrémenté globalement (jamais réinitialisé, même d'une année à l'autre) pour garantir une traçabilité comptable continue de l'établissement.
+________________________________________
+13. LIVRABLES ATTENDUS
+1.	Application web fonctionnelle (PHP/MySQL/Bootstrap/JS) avec les deux interfaces (Admin, Secrétaire/Caissière)
+2.	Version PWA installable
+3.	Base de données structurée 
+4.	Génération et impression de reçus PDF pour chaque paiement
+5.	Fonction "Nouvelle année scolaire" opérationnelle (archivage automatique + remise à zéro des effectifs/finances + option de promotion en masse des élèves)
+6.	Export Excel/CSV des listes d'élèves par classe
+7.	Système multilingue FR/EN fonctionnel
+8.	Journal d'audit et historique de connexion consultables
+9.	Documentation d'installation et guide d'utilisation simple pour le personnel non technique

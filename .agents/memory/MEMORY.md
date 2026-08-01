@@ -1,0 +1,1 @@
+- [GSB SINIYAT stack](gsb-siniyat-stack.md) — PHP 8.2 + PostgreSQL (not MySQL), Dompdf+PhpSpreadsheet via Composer, port 5000.
