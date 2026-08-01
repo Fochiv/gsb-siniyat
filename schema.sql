@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS historique_connexions (
     login_tente     VARCHAR(100),
     succes          BOOLEAN  NOT NULL DEFAULT FALSE,
     ip_address      VARCHAR(45),
+    user_agent      TEXT,
     date_heure      TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
