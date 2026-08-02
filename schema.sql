@@ -46,7 +46,8 @@ CREATE TABLE IF NOT EXISTS niveaux (
     nom_en   VARCHAR(100) NOT NULL,
     section  VARCHAR(20)  NOT NULL DEFAULT 'francophone' CHECK (section IN ('francophone','anglophone')),
     ordre    INTEGER      NOT NULL DEFAULT 0,
-    actif    BOOLEAN      NOT NULL DEFAULT TRUE
+    actif    BOOLEAN      NOT NULL DEFAULT TRUE,
+    CONSTRAINT niveaux_nom_fr_section_unique UNIQUE (nom_fr, section)
 );
 
 -- Élèves
@@ -193,7 +194,7 @@ INSERT INTO niveaux (nom_fr, nom_en, section, ordre, actif) VALUES
 ('CE2',            'CE2',              'francophone', 6, TRUE),
 ('CM1',            'CM1',              'francophone', 7, TRUE),
 ('CM2',            'CM2',              'francophone', 8, TRUE)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (nom_fr, section) DO NOTHING;
 
 -- ---- Niveaux Anglophones ----
 INSERT INTO niveaux (nom_fr, nom_en, section, ordre, actif) VALUES
@@ -205,4 +206,4 @@ INSERT INTO niveaux (nom_fr, nom_en, section, ordre, actif) VALUES
 ('Class 4',     'Class 4',     'anglophone', 16, TRUE),
 ('Class 5',     'Class 5',     'anglophone', 17, TRUE),
 ('Class 6',     'Class 6',     'anglophone', 18, TRUE)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (nom_fr, section) DO NOTHING;

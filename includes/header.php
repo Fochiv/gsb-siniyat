@@ -151,14 +151,9 @@ function navActive(string $path): string {
 
         <div class="topbar-right">
             <!-- Language switcher -->
-            <div class="btn-group btn-group-sm" role="group">
-                <button type="button"
-                    class="btn btn-sm <?= $currentLang==='fr' ? 'btn-primary-siniyat' : 'btn-outline-secondary' ?>"
-                    onclick="switchLang('fr')">FR</button>
-                <button type="button"
-                    class="btn btn-sm <?= $currentLang==='en' ? 'btn-primary-siniyat' : 'btn-outline-secondary' ?>"
-                    onclick="switchLang('en')">EN</button>
-            </div>
+            <button type="button" id="lang-toggle-btn" class="btn btn-sm btn-outline-secondary" onclick="toggleLang()">
+                <i class="bi bi-translate me-1"></i><?php if ($currentLang==='fr'): ?>FR&nbsp;<span class="text-muted">/&nbsp;EN</span><?php else: ?><span class="text-muted">FR&nbsp;/&nbsp;</span>EN<?php endif; ?>
+            </button>
 
             <!-- User dropdown -->
             <div class="dropdown">

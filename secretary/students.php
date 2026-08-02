@@ -326,6 +326,76 @@ include dirname(__DIR__) . '/includes/header.php';
         </button>
     </div>
 </form>
+
+<?php if ($eleve): ?>
+<?php $situation = getSituationFinanciere($editId); ?>
+<!-- Section 4: Situation financière -->
+<div class="card mt-3">
+    <div class="card-header bg-primary-siniyat text-white d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-wallet2 me-2"></i>Situation financière</span>
+        <a href="/secretary/payments.php?eleve_id=<?= $editId ?>" class="btn btn-sm btn-light">
+            <i class="bi bi-plus-circle me-1"></i>Nouveau paiement
+        </a>
+    </div>
+    <div class="card-body">
+        <?php if (!empty($situation) && isset($situation['totalDu'])): ?>
+        <?php
+        $statut = $situation['statut'] ?? 'impaye';
+        $bgsF = ['paye'=>'badge-paye','partiel'=>'badge-partiel','impaye'=>'badge-impaye'];
+        $labelsF = ['paye'=>'Soldé','partiel'=>'Partiel','impaye'=>'Impayé'];
+        ?>
+        <div class="row g-2 mb-3">
+            <div class="col-4">
+                <div class="p-3 rounded bg-light text-center">
+                    <div class="text-muted small">Total dû</div>
+                    <div class="fw-bold"><?= formatMontant($situation['totalDu']) ?></div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="p-3 rounded text-center" style="background:#d1fae5;">
+                    <div class="text-muted small">Total payé</div>
+                    <div class="fw-bold text-success"><?= formatMontant($situation['paye']) ?></div>
+                </div>
+            </div>
+            <div class="col-4">
+                <div class="p-3 rounded text-center" style="background:#fee2e2;">
+                    <div class="text-muted small">Reste à payer</div>
+                    <div class="fw-bold text-danger"><?= formatMontant(max(0, $situation['reste'])) ?></div>
+                </div>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <span class="badge <?= $bgsF[$statut] ?>"><?= $labelsF[$statut] ?></span>
+            <?php if (($situation['tauxReduction']??0) > 0): ?>
+            <small class="text-muted"><i class="bi bi-tag me-1"></i>Réduction <?= $situation['tauxReduction'] ?>% appliquée</small>
+            <?php endif; ?>
+        </div>
+        <?php foreach (($situation['tranches'] ?? []) as $t): ?>
+        <div class="mb-2">
+            <div class="d-flex justify-content-between small mb-1">
+                <span><?= e($t['libelle_fr']) ?></span>
+                <span><?= formatMontant((float)$t['paye']) ?> / <?= formatMontant((float)$t['montant']) ?></span>
+            </div>
+            <div class="progress" style="height:6px;">
+                <div class="progress-bar bg-success" style="width:<?= (float)$t['montant']>0 ? min(100, round((float)$t['paye']/(float)$t['montant']*100)) : 0 ?>%"></div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+        <?php else: ?>
+        <p class="text-muted mb-2"><i class="bi bi-info-circle me-1"></i>Aucune grille de frais configurée pour cette classe.</p>
+        <a href="/admin/fees.php" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-currency-exchange me-1"></i>Configurer la grille des frais
+        </a>
+        <?php endif; ?>
+    </div>
+</div>
+<?php else: ?>
+<div class="card mt-3">
+    <div class="card-body text-muted small">
+        <i class="bi bi-info-circle me-1"></i>La situation financière sera disponible après l'enregistrement de l'élève.
+    </div>
+</div>
+<?php endif; ?>
 </div>
 
 <?php

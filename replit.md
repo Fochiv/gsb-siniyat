@@ -67,6 +67,16 @@ Handles student enrollment, fee collection, receipts, and academic year manageme
 php -S 0.0.0.0:5000 router.php
 ```
 
+## First-Time Setup (after import or clone)
+```bash
+# Apply schema + all incremental migrations (idempotent, safe to re-run)
+php scripts/migrate.php
+```
+
+The app uses **Replit's built-in managed PostgreSQL** — no separate server to install.
+`DATABASE_URL` (and `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`) are
+injected automatically by the platform. The `php-8.2` module includes `pdo_pgsql`.
+
 ## Default Admin Credentials
 - **Login**: `admin`
 - **Password**: `password` (change on first login!)

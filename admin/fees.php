@@ -84,6 +84,31 @@ if ($gridRows) {
     }
 }
 
+// Handle grid initialization
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action']??'') === 'init_grids') {
+    csrfCheck();
+    $initYearId = (int)$_POST['annee_id'];
+    $niveauxAll = getDB()->query("SELECT id FROM niveaux WHERE actif=TRUE")->fetchAll();
+    foreach ($niveauxAll as $n) {
+        $db->prepare("INSERT INTO grille_frais (annee_id,niveau_id,frais_inscription)
+            VALUES (?,?,0) ON CONFLICT (annee_id,niveau_id) DO NOTHING")
+            ->execute([$initYearId, $n['id']]);
+    }
+    auditLog($user['user_id'],'INIT_GRILLE_FRAIS','grille_frais',0,"Initialisation grilles année $initYearId");
+    // Reload
+    $grids->execute([$initYearId]);
+    $gridRows = $grids->fetchAll();
+    if ($gridRows) {
+        $gridIds = array_column($gridRows, 'id');
+        $inStr = implode(',', array_fill(0, count($gridIds), '?'));
+        $trStmt = $db->prepare("SELECT * FROM tranches WHERE grille_id IN ($inStr) ORDER BY grille_id, numero");
+        $trStmt->execute($gridIds);
+        $allTranches = [];
+        foreach ($trStmt->fetchAll() as $t) { $allTranches[$t['grille_id']][] = $t; }
+    }
+    $message = 'Grilles initialisées pour toutes les classes.'; $messageType = 'success';
+}
+
 $editGridId = (int)($_GET['grid'] ?? 0);
 $editGrid   = null;
 $editTranches = [];
@@ -103,17 +128,41 @@ include dirname(__DIR__) . '/includes/header.php';
 </div>
 <?php endif; ?>
 
-<!-- Year selector -->
+<!-- Year selector + init -->
 <div class="card mb-3">
     <div class="card-body py-2">
-        <form class="d-flex align-items-center gap-2">
-            <label class="fw-semibold text-muted small" data-i18n="nav.years">Année :</label>
-            <select name="annee" class="form-select form-select-sm" style="width:150px;" onchange="this.form.submit()">
-                <?php foreach ($allYears as $y): ?>
-                <option value="<?= $y['id'] ?>" <?= $y['id']==$yearId?'selected':'' ?>><?= e($y['libelle']) ?><?= $y['statut']==='active'?' ★':'' ?></option>
-                <?php endforeach; ?>
-            </select>
-        </form>
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+            <form class="d-flex align-items-center gap-2">
+                <label class="fw-semibold text-muted small" data-i18n="nav.years">Année :</label>
+                <select name="annee" class="form-select form-select-sm" style="width:150px;" onchange="this.form.submit()">
+                    <?php foreach ($allYears as $y): ?>
+                    <option value="<?= $y['id'] ?>" <?= $y['id']==$yearId?'selected':'' ?>><?= e($y['libelle']) ?><?= $y['statut']==='active'?' ★':'' ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </form>
+            <?php if (empty($gridRows)): ?>
+            <form method="POST">
+                <?= csrfField() ?>
+                <input type="hidden" name="action" value="init_grids">
+                <input type="hidden" name="annee_id" value="<?= $yearId ?>">
+                <button type="submit" class="btn btn-primary-siniyat btn-sm">
+                    <i class="bi bi-magic me-1"></i>Initialiser les grilles pour toutes les classes
+                </button>
+            </form>
+            <?php else: ?>
+            <div class="d-flex align-items-center gap-3">
+                <small class="text-muted"><i class="bi bi-tag me-1"></i>Réductions : <strong><?= REDUCTION_PAIEMENT_COMPLET ?>%</strong> paiement complet &nbsp;|&nbsp; <strong><?= REDUCTION_FRATRIE ?>%</strong> / enfant supplémentaire</small>
+                <form method="POST" class="d-inline">
+                    <?= csrfField() ?>
+                    <input type="hidden" name="action" value="init_grids">
+                    <input type="hidden" name="annee_id" value="<?= $yearId ?>">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm" title="Ajouter les nouvelles classes manquantes">
+                        <i class="bi bi-plus-circle me-1"></i>Ajouter classes manquantes
+                    </button>
+                </form>
+            </div>
+            <?php endif; ?>
+        </div>
     </div>
 </div>
 

@@ -91,18 +91,17 @@ include dirname(__DIR__) . '/includes/header.php';
 </div>
 
 <div class="row g-3">
-    <!-- Left: filters -->
+    <!-- Left: filters — compact dropdowns -->
     <div class="col-lg-3 no-print">
         <div class="card mb-3">
             <div class="card-header bg-primary-siniyat text-white">
                 <i class="bi bi-funnel me-2"></i>Sélection
             </div>
             <div class="card-body">
-                <form method="GET">
-                    <!-- Year -->
-                    <div class="mb-3">
+                <form method="GET" id="filter-form">
+                    <div class="mb-2">
                         <label class="form-label small fw-bold">Année scolaire</label>
-                        <select name="annee" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <select name="annee" class="form-select form-select-sm" onchange="document.getElementById('niveau-select').innerHTML='<option value=\"\">-- Choisir une classe --</option>'; loadClasses(this.value, document.getElementById('section-select').value)">
                             <?php foreach ($allYears as $y): ?>
                             <option value="<?= $y['id'] ?>" <?= $y['id']==$yearId?'selected':'' ?>>
                                 <?= e($y['libelle']) ?><?= $y['statut']==='active'?' ★':'' ?>
@@ -110,38 +109,26 @@ include dirname(__DIR__) . '/includes/header.php';
                             <?php endforeach; ?>
                         </select>
                     </div>
-
-                    <!-- Section -->
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold">Section</label>
-                        <div class="d-grid gap-2">
-                            <a href="?annee=<?= $yearId ?>&section=francophone"
-                               class="btn btn-sm <?= $section==='francophone'?'btn-primary-siniyat':'btn-outline-secondary' ?>">
-                                <i class="bi bi-flag me-1"></i>Francophone
-                            </a>
-                            <a href="?annee=<?= $yearId ?>&section=anglophone"
-                               class="btn btn-sm <?= $section==='anglophone'?'btn-primary-siniyat':'btn-outline-secondary' ?>">
-                                <i class="bi bi-flag me-1"></i>Anglophone
-                            </a>
-                        </div>
-                    </div>
-                    <input type="hidden" name="section" value="<?= e($section) ?>">
-
-                    <!-- Classes -->
                     <div class="mb-2">
+                        <label class="form-label small fw-bold">Section</label>
+                        <select name="section" id="section-select" class="form-select form-select-sm" onchange="loadClasses(document.querySelector('[name=annee]').value, this.value)">
+                            <option value="francophone" <?= $section==='francophone'?'selected':'' ?>>Francophone</option>
+                            <option value="anglophone"  <?= $section==='anglophone' ?'selected':'' ?>>Anglophone</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label small fw-bold">Classe</label>
-                        <div class="list-group list-group-flush">
+                        <select name="niveau" id="niveau-select" class="form-select form-select-sm" required>
+                            <option value="">-- Choisir une classe --</option>
                             <?php foreach ($niveauxList as $n): ?>
-                            <a href="?annee=<?= $yearId ?>&section=<?= $section ?>&niveau=<?= $n['id'] ?>"
-                               class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-2 <?= $n['id']==$niveauId?'active':'' ?>"
-                               style="border-radius:.5rem;margin-bottom:.2rem;">
-                                <span><?= e($n['nom_fr']) ?></span>
-                            </a>
+                            <option value="<?= $n['id'] ?>" <?= $n['id']==$niveauId?'selected':'' ?>><?= e($n['nom_fr']) ?></option>
                             <?php endforeach; ?>
-                            <?php if (empty($niveauxList)): ?>
-                            <p class="text-muted small">Aucune classe pour cette section.</p>
-                            <?php endif; ?>
-                        </div>
+                        </select>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary-siniyat btn-sm">
+                            <i class="bi bi-check-circle me-1"></i>Voir la liste
+                        </button>
                     </div>
                 </form>
             </div>
@@ -270,3 +257,22 @@ include dirname(__DIR__) . '/includes/header.php';
 </div>
 </div>
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>
+<script>
+// Reload class dropdown when section changes
+async function loadClasses(anneeId, section) {
+    const sel = document.getElementById('niveau-select');
+    sel.innerHTML = '<option value="">Chargement...</option>';
+    try {
+        const res = await fetch('/api/students.php?niveaux=1&section='+encodeURIComponent(section));
+        const data = await res.json();
+        sel.innerHTML = '<option value="">-- Choisir une classe --</option>';
+        (data.niveaux||[]).forEach(n => {
+            const opt = document.createElement('option');
+            opt.value = n.id; opt.textContent = n.nom_fr;
+            sel.appendChild(opt);
+        });
+    } catch(e) {
+        sel.innerHTML = '<option value="">-- Choisir une classe --</option>';
+    }
+}
+</script>

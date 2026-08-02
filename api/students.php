@@ -13,6 +13,14 @@ $q      = trim($_GET['q'] ?? '');
 $limit  = min((int)($_GET['limit'] ?? 20), 100);
 $anneeId= (int)($_GET['annee_id'] ?? $activeYear['id']);
 
+// Niveaux by section (used by classes.php dropdown)
+if ($method === 'GET' && isset($_GET['niveaux'])) {
+    $section = in_array($_GET['section']??'', ['francophone','anglophone']) ? $_GET['section'] : 'francophone';
+    $stmt = $db->prepare("SELECT id, nom_fr, nom_en FROM niveaux WHERE actif=TRUE AND section=? ORDER BY ordre");
+    $stmt->execute([$section]);
+    jsonResponse(['niveaux' => $stmt->fetchAll()]);
+}
+
 if ($method === 'GET' && $q) {
     $stmt = $db->prepare("
         SELECT e.id, e.nom, e.prenoms, e.matricule, e.sexe,

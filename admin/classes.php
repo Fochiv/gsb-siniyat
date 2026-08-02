@@ -60,7 +60,14 @@ include dirname(__DIR__) . '/includes/header.php';
 <div class="row g-3">
     <!-- Form -->
     <div class="col-lg-4">
-        <div class="card">
+        <?php if (!$editN): ?>
+        <div class="mb-3">
+            <button type="button" class="btn btn-primary-siniyat w-100" onclick="toggleClassForm()">
+                <i class="bi bi-plus-circle me-2"></i>Ajouter un niveau
+            </button>
+        </div>
+        <?php endif; ?>
+        <div class="card <?= !$editN ? 'd-none' : '' ?>" id="class-form-card">
             <div class="card-header bg-primary-siniyat text-white">
                 <i class="bi bi-<?= $editN?'pencil':'plus-circle' ?> me-2"></i>
                 <?= $editN ? 'Modifier le niveau' : 'Ajouter un niveau' ?>
@@ -117,9 +124,7 @@ include dirname(__DIR__) . '/includes/header.php';
                         <button type="submit" class="btn btn-primary-siniyat">
                             <i class="bi bi-check-lg me-1"></i>Enregistrer
                         </button>
-                        <?php if ($editN): ?>
                         <a href="/admin/classes.php" class="btn btn-outline-secondary">Annuler</a>
-                        <?php endif; ?>
                     </div>
                 </form>
             </div>
@@ -213,3 +218,10 @@ include dirname(__DIR__) . '/includes/header.php';
 </div>
 </div>
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>
+<script>
+function toggleClassForm() {
+    const card = document.getElementById('class-form-card');
+    card.classList.toggle('d-none');
+    if (!card.classList.contains('d-none')) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+</script>

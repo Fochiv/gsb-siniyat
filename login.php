@@ -140,12 +140,9 @@ $forbidden = isset($_GET['forbidden']);
 
             <!-- Language switcher -->
             <div class="text-center mt-4">
-                <div class="btn-group btn-group-sm">
-                    <button type="button" class="btn btn-outline-secondary <?= $currentLang === 'fr' ? 'active' : '' ?>"
-                            onclick="switchLang('fr')">Français</button>
-                    <button type="button" class="btn btn-outline-secondary <?= $currentLang === 'en' ? 'active' : '' ?>"
-                            onclick="switchLang('en')">English</button>
-                </div>
+                <button type="button" id="lang-toggle-btn" class="btn btn-sm btn-outline-secondary" onclick="toggleLang()">
+                    <i class="bi bi-translate me-1"></i><?php if ($currentLang==='fr'): ?>FR&nbsp;<span class="text-muted">/&nbsp;EN</span><?php else: ?><span class="text-muted">FR&nbsp;/&nbsp;</span>EN<?php endif; ?>
+                </button>
             </div>
         </div>
     </div>

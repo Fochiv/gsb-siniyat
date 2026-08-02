@@ -57,11 +57,15 @@
         await loadTranslations(lang);
         applyTranslations();
         document.documentElement.setAttribute('lang', lang);
-        // Update active button states
-        document.querySelectorAll('[onclick*="switchLang"]').forEach(btn => {
-            const btnLang = btn.getAttribute('onclick').match(/'(\w+)'/)?.[1];
-            if (btnLang) btn.classList.toggle('active', btnLang === lang);
-        });
+        // Update toggle button label
+        const btn = document.getElementById('lang-toggle-btn');
+        if (btn) {
+            btn.innerHTML = '<i class="bi bi-translate me-1"></i>' + (lang === 'fr' ? 'FR&nbsp;<span class="text-muted">/&nbsp;EN</span>' : '<span class="text-muted">FR&nbsp;/&nbsp;</span>EN');
+        }
+    }
+
+    function toggleLang() {
+        switchLang(currentLang === 'fr' ? 'en' : 'fr');
     }
 
     // Initialize on DOM ready
