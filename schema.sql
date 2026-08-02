@@ -158,6 +158,18 @@ CREATE TABLE IF NOT EXISTS recus (
     duplicata       BOOLEAN NOT NULL DEFAULT FALSE
 );
 
+-- Paramètres configurables (réductions, etc.)
+CREATE TABLE IF NOT EXISTS parametres (
+    cle        VARCHAR(100) PRIMARY KEY,
+    valeur     TEXT         NOT NULL,
+    updated_at TIMESTAMP    NOT NULL DEFAULT NOW()
+);
+
+INSERT INTO parametres (cle, valeur) VALUES
+  ('reduction_paiement_complet', '2'),
+  ('reduction_fratrie',          '2')
+ON CONFLICT (cle) DO NOTHING;
+
 -- Journal d'audit
 CREATE TABLE IF NOT EXISTS journal_audit (
     id             SERIAL PRIMARY KEY,

@@ -1,0 +1,11 @@
+J'ai quelques problemes avec mon systeme j'espere que tu vas m'aider a gerer ces problemes stp:
+Dans la grille des tarifs dans la page admin je ne vois pas les differents tarifs, impossible de faire la gestion des tarifs. Ni des pourcentages de reduction. Dans la page d’inscription d’un eleve apres avoir entrer ses informations je ne vois pas la ou inserer la somme qu’il a paye ou pas. Meme Quand je clique sur Nouveau paiment je ne peux toujours rien . Je veux que pour chaque inscription qu’en bas on puisse directement gerer la situation financiere de l’eleve (Total dû ,Total payé Reste à payer). Si il y’a moyen d’enregistrer aussi ces informations directement avant l’enregistrement ca serait aussi bien . J'ai incrit un eleve mais je ne parviens pas dire quelle tranche il a paye et autres, a voir ses paiements encore moins a tirer le recu de l'eleve. J’aimerais que le bouton de Langue qu’on ait un seul bouton, si c’est en Français alors ca passe en FR et quand on choisit Anglais ca passe en EN et ceci dans toutes les pages et pas besoin de recharger la page pour avoir une traduction.
+La grille de frais doit être paramétrable par l'Admin, pas codée en dur, car elle peut changer chaque année. Pour l'année 2026-2027, la grille officielle (tirée de la brochure) est la suivante :
+Classe	1ère Tranche (Septembre)	2ème Tranche (Déc.-Janv.)	Autres frais (après inscription)	Total
+Pré-Maternelle / Pre-Nursery	50 000 FCFA	15 000 FCFA	5 000 FCFA	70 000 FCFA
+Maternelle / Nursery	35 000 FCFA	20 000 FCFA	5 000 FCFA	60 000 FCFA
+SIL au CM2 / Class 1 to Class 6	30 000 FCFA	15 000 FCFA	5 000 FCFA	50 000 FCFA
+
+•	Le nombre de tranches (ici 2 + autres frais) doit être paramétrable par l'Admin : pour une classe donnée et une année donnée, l'Admin définit le nombre de tranches, leur montant et leur échéance indicative (une classe pourrait avoir 2, 3 ou 4 tranches selon les années).
+•	Réduction automatique de 2% par enfant supplémentaire de la même famille (le système doit pouvoir lier des fratries).
+•	Réduction de 2% sur le total en cas de paiement intégral en une seule fois.

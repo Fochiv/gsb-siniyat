@@ -18,6 +18,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrfCheck();
     $action = $_POST['action'] ?? '';
 
+    if ($action === 'save_params') {
+        $redComplet = (float)str_replace(',','.', $_POST['reduction_paiement_complet'] ?? '2');
+        $redFratrie = (float)str_replace(',','.', $_POST['reduction_fratrie'] ?? '2');
+        $db->prepare("INSERT INTO parametres (cle,valeur,updated_at) VALUES ('reduction_paiement_complet',?,NOW())
+            ON CONFLICT (cle) DO UPDATE SET valeur=EXCLUDED.valeur, updated_at=NOW()")
+            ->execute([$redComplet]);
+        $db->prepare("INSERT INTO parametres (cle,valeur,updated_at) VALUES ('reduction_fratrie',?,NOW())
+            ON CONFLICT (cle) DO UPDATE SET valeur=EXCLUDED.valeur, updated_at=NOW()")
+            ->execute([$redFratrie]);
+        auditLog($user['user_id'],'MODIF_PARAMETRES','parametres',0,"Réductions: complet={$redComplet}%, fratrie={$redFratrie}%");
+        $message = 'Paramètres de réduction mis à jour.'; $messageType = 'success';
+    }
+
     if ($action === 'save_grid') {
         $anneeId  = (int)$_POST['annee_id'];
         $niveauId = (int)$_POST['niveau_id'];
@@ -151,7 +164,7 @@ include dirname(__DIR__) . '/includes/header.php';
             </form>
             <?php else: ?>
             <div class="d-flex align-items-center gap-3">
-                <small class="text-muted"><i class="bi bi-tag me-1"></i>Réductions : <strong><?= REDUCTION_PAIEMENT_COMPLET ?>%</strong> paiement complet &nbsp;|&nbsp; <strong><?= REDUCTION_FRATRIE ?>%</strong> / enfant supplémentaire</small>
+                <small class="text-muted"><i class="bi bi-tag me-1"></i>Réductions : <strong><?= e(getParametre('reduction_paiement_complet',(string)REDUCTION_PAIEMENT_COMPLET)) ?>%</strong> paiement complet &nbsp;|&nbsp; <strong><?= e(getParametre('reduction_fratrie',(string)REDUCTION_FRATRIE)) ?>%</strong> / enfant supplémentaire</small>
                 <form method="POST" class="d-inline">
                     <?= csrfField() ?>
                     <input type="hidden" name="action" value="init_grids">
@@ -163,6 +176,49 @@ include dirname(__DIR__) . '/includes/header.php';
             </div>
             <?php endif; ?>
         </div>
+    </div>
+</div>
+
+<!-- Paramètres de réduction -->
+<div class="card mb-3">
+    <div class="card-header bg-primary-siniyat text-white">
+        <i class="bi bi-tag me-2"></i>Paramètres de réduction
+    </div>
+    <div class="card-body">
+        <form method="POST" class="row g-3 align-items-end">
+            <?= csrfField() ?>
+            <input type="hidden" name="action" value="save_params">
+            <input type="hidden" name="annee_id" value="<?= $yearId ?>">
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold">
+                    <i class="bi bi-cash-stack me-1"></i>Réduction paiement complet (%)
+                </label>
+                <div class="input-group input-group-sm">
+                    <input type="number" name="reduction_paiement_complet" class="form-control"
+                           min="0" max="50" step="0.5"
+                           value="<?= e(getParametre('reduction_paiement_complet', (string)REDUCTION_PAIEMENT_COMPLET)) ?>">
+                    <span class="input-group-text">%</span>
+                </div>
+                <div class="form-text">Appliquée si l'élève paie en une seule fois.</div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small fw-semibold">
+                    <i class="bi bi-people me-1"></i>Réduction fratrie (% / enfant supplémentaire)
+                </label>
+                <div class="input-group input-group-sm">
+                    <input type="number" name="reduction_fratrie" class="form-control"
+                           min="0" max="50" step="0.5"
+                           value="<?= e(getParametre('reduction_fratrie', (string)REDUCTION_FRATRIE)) ?>">
+                    <span class="input-group-text">%</span>
+                </div>
+                <div class="form-text">Par enfant supplémentaire de la même famille.</div>
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary-siniyat btn-sm w-100">
+                    <i class="bi bi-check-lg me-1"></i>Enregistrer les réductions
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 

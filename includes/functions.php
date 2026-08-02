@@ -62,6 +62,21 @@ function getEleveById(int $id): ?array {
     return $stmt->fetch() ?: null;
 }
 
+function getParametre(string $cle, string $defaut = ''): string {
+    static $cache = [];
+    if (!isset($cache[$cle])) {
+        try {
+            $stmt = getDB()->prepare("SELECT valeur FROM parametres WHERE cle=?");
+            $stmt->execute([$cle]);
+            $val = $stmt->fetchColumn();
+            $cache[$cle] = $val !== false ? $val : $defaut;
+        } catch (Exception $e) {
+            $cache[$cle] = $defaut;
+        }
+    }
+    return $cache[$cle];
+}
+
 function getSituationFinanciere(int $eleveId): array {
     $db = getDB();
 
@@ -104,7 +119,7 @@ function getSituationFinanciere(int $eleveId): array {
         $siblings = $db->prepare("SELECT COUNT(*) FROM eleves WHERE famille_id=? AND id!=? AND annee_id=? AND actif=TRUE");
         $siblings->execute([$info['famille_id'], $eleveId, $info['annee_id']]);
         $nbSiblings = (int)$siblings->fetchColumn();
-        $reductionFratrie = $nbSiblings * REDUCTION_FRATRIE;
+        $reductionFratrie = $nbSiblings * (float)getParametre('reduction_fratrie', (string)REDUCTION_FRATRIE);
     }
 
     $totalTranches = array_sum(array_column($tranches, 'montant'));
@@ -116,7 +131,7 @@ function getSituationFinanciere(int $eleveId): array {
     $fullPayment = $db->prepare("SELECT COUNT(*) FROM paiements WHERE eleve_id=? AND type_paiement='solde_complet' AND annule=FALSE");
     $fullPayment->execute([$eleveId]);
     $isFullPayment = (int)$fullPayment->fetchColumn() > 0;
-    $reductionComplet = $isFullPayment ? REDUCTION_PAIEMENT_COMPLET : 0;
+    $reductionComplet = $isFullPayment ? (float)getParametre('reduction_paiement_complet', (string)REDUCTION_PAIEMENT_COMPLET) : 0;
 
     $tauxReduction = min(($reductionFratrie + $reductionComplet), 20); // cap at 20%
     $montantReduction = $totalBrut * $tauxReduction / 100;

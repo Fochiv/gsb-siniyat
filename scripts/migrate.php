@@ -146,7 +146,23 @@ try {
             mlog('niveaux_nom_fr_section_unique already present — skipping dedup.');
         }
 
-        // 3. Re-apply schema: CREATE TABLE IF NOT EXISTS + ON CONFLICT seeding.
+        // 3. Add parametres table if missing
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS parametres (
+                cle        VARCHAR(100) PRIMARY KEY,
+                valeur     TEXT         NOT NULL,
+                updated_at TIMESTAMP    NOT NULL DEFAULT NOW()
+            )
+        ");
+        $pdo->exec("
+            INSERT INTO parametres (cle, valeur) VALUES
+              ('reduction_paiement_complet', '2'),
+              ('reduction_fratrie',          '2')
+            ON CONFLICT (cle) DO NOTHING
+        ");
+        mlog('parametres table ensured.');
+
+        // 4. Re-apply schema: CREATE TABLE IF NOT EXISTS + ON CONFLICT seeding.
         //    With the unique constraint in place, seed INSERTs are genuine no-ops
         //    if the rows already exist; custom administrator-added levels are
         //    never touched.

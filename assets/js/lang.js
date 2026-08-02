@@ -60,7 +60,7 @@
         // Update toggle button label
         const btn = document.getElementById('lang-toggle-btn');
         if (btn) {
-            btn.innerHTML = '<i class="bi bi-translate me-1"></i>' + (lang === 'fr' ? 'FR&nbsp;<span class="text-muted">/&nbsp;EN</span>' : '<span class="text-muted">FR&nbsp;/&nbsp;</span>EN');
+            btn.innerHTML = '<i class="bi bi-translate me-1"></i>' + lang.toUpperCase();
         }
     }
 
@@ -76,7 +76,8 @@
     }
 
     // Expose globally
-    window.switchLang = switchLang;
+    window.switchLang  = switchLang;
+    window.toggleLang  = toggleLang;
     window.t = t;
 
     if (document.readyState === 'loading') {

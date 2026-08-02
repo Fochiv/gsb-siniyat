@@ -13,6 +13,47 @@ if (!$id) redirect('/secretary/search.php');
 $eleve = getEleveById($id);
 if (!$eleve) redirect('/secretary/search.php');
 
+// ── Inline payment handler ────────────────────────────────────────────────
+$payMessage = ''; $payMessageType = ''; $newPayId = null;
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_payment_inline'])) {
+    csrfCheck();
+    $trancheId    = !empty($_POST['tranche_id']) ? (int)$_POST['tranche_id'] : null;
+    $typePaiement = $_POST['type_paiement'] ?? 'tranche';
+    $montant      = (float)str_replace([' ',','],['','.'], $_POST['montant'] ?? '0');
+    $mode         = $_POST['mode_paiement'] ?? 'especes';
+    $nomBanque    = trim($_POST['nom_banque'] ?? '');
+    $refBancaire  = trim($_POST['reference_bancaire'] ?? '');
+    $dateDepot    = !empty($_POST['date_depot']) ? $_POST['date_depot'] : null;
+    $datePaiement = !empty($_POST['date_paiement']) ? $_POST['date_paiement'] : date('Y-m-d H:i:s');
+    $notes        = trim($_POST['notes'] ?? '');
+
+    if ($montant > 0) {
+        try {
+            $stmt = $db->prepare("INSERT INTO paiements
+                (eleve_id,tranche_id,type_paiement,montant,mode_paiement,nom_banque,
+                 reference_bancaire,date_depot,date_paiement,encaisse_par,notes)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING id");
+            $stmt->execute([$id,$trancheId,$typePaiement,$montant,$mode,
+                $nomBanque?:null,$refBancaire?:null,$dateDepot,$datePaiement,
+                $user['user_id'],$notes?:null]);
+            $newPayId = (int)$stmt->fetchColumn();
+            $numRecu  = generateNumeroRecu();
+            $db->prepare("INSERT INTO recus (numero_recu,paiement_id,eleve_id,genere_par)
+                VALUES (?,?,?,?)")->execute([$numRecu,$newPayId,$id,$user['user_id']]);
+            auditLog($user['user_id'],'PAIEMENT','paiements',$newPayId,
+                "Élève #$id — ".formatMontant($montant)." — $mode — reçu #$numRecu");
+            redirect("/secretary/student_view.php?id=$id&payment_ok=$newPayId");
+        } catch (Exception $ex) {
+            $payMessage = 'Erreur lors de l\'enregistrement du paiement.';
+            $payMessageType = 'danger';
+            error_log($ex->getMessage());
+        }
+    } else {
+        $payMessage = 'Le montant doit être supérieur à 0.';
+        $payMessageType = 'warning';
+    }
+}
+
 $docs = $db->prepare("SELECT * FROM documents_eleve WHERE eleve_id=?");
 $docs->execute([$id]);
 $docs = $docs->fetch();
@@ -48,6 +89,23 @@ include dirname(__DIR__) . '/includes/header.php';
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
 <?php endif; ?>
+<?php if (isset($_GET['payment_ok'])): ?>
+<div class="alert alert-success alert-dismissible fade show">
+    <i class="bi bi-check-circle-fill me-2"></i>
+    <strong>Paiement enregistré avec succès !</strong>
+    <a href="/pdf/receipt.php?paiement_id=<?= (int)$_GET['payment_ok'] ?>" target="_blank"
+       class="btn btn-sm btn-outline-success ms-2">
+        <i class="bi bi-printer me-1"></i>Imprimer le reçu
+    </a>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+<?php if ($payMessage): ?>
+<div class="alert alert-<?= $payMessageType ?> alert-dismissible fade show">
+    <i class="bi bi-exclamation-triangle me-2"></i><?= e($payMessage) ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
 
 <!-- Header bar -->
 <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
@@ -67,9 +125,10 @@ include dirname(__DIR__) . '/includes/header.php';
         <a href="/secretary/students.php?edit=<?= $id ?>" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-pencil me-1"></i><span data-i18n="student.edit">Modifier</span>
         </a>
-        <a href="/secretary/payments.php?eleve_id=<?= $id ?>" class="btn btn-primary-siniyat btn-sm">
-            <i class="bi bi-cash-coin me-1"></i><span data-i18n="nav.payments">Paiement</span>
-        </a>
+        <button type="button" class="btn btn-primary-siniyat btn-sm"
+                data-bs-toggle="modal" data-bs-target="#payModal">
+            <i class="bi bi-cash-coin me-1"></i>Nouveau paiement
+        </button>
         <a href="/secretary/search.php" class="btn btn-outline-secondary btn-sm">
             <i class="bi bi-arrow-left me-1"></i>Retour
         </a>
@@ -143,9 +202,10 @@ include dirname(__DIR__) . '/includes/header.php';
         <div class="card mb-3">
             <div class="card-header bg-primary-siniyat text-white d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-wallet2 me-2"></i><span data-i18n="student.financial_status">Situation financière</span></span>
-                <a href="/secretary/payments.php?eleve_id=<?= $id ?>" class="btn btn-sm btn-light">
+                <button type="button" class="btn btn-sm btn-light"
+                        data-bs-toggle="modal" data-bs-target="#payModal">
                     <i class="bi bi-plus-circle me-1"></i>Nouveau paiement
-                </a>
+                </button>
             </div>
             <div class="card-body">
                 <?php if (!empty($situation)): ?>
@@ -252,4 +312,166 @@ include dirname(__DIR__) . '/includes/header.php';
     </div>
 </div>
 </div>
+<?php
+// Build tranches JSON for JS auto-fill
+$tranchesJs = [];
+foreach (($situation['tranches'] ?? []) as $t) {
+    $tranchesJs[] = [
+        'id'      => $t['id'],
+        'label'   => $t['libelle_fr'],
+        'montant' => (float)$t['montant'],
+        'restant' => max(0, (float)$t['montant'] - (float)$t['paye']),
+    ];
+}
+$resteTotal = max(0, $situation['reste'] ?? 0);
+$tranchesJson = json_encode($tranchesJs, JSON_UNESCAPED_UNICODE);
+
+$extraScripts = <<<HTML
+<script>
+const PAY_TRANCHES = {$tranchesJson};
+const PAY_RESTE    = {$resteTotal};
+
+// Auto-fill amount when tranche selected
+document.getElementById('payTranche').addEventListener('change', function() {
+    const val = this.value;
+    const amtInput = document.getElementById('payMontant');
+    if (val === '__solde') {
+        amtInput.value = Math.round(PAY_RESTE);
+        document.getElementById('payType').value = 'solde_complet';
+        this.name = '_noop';
+    } else if (val === '__annexe') {
+        amtInput.value = '';
+        document.getElementById('payType').value = 'annexe';
+        this.name = '_noop';
+    } else {
+        const t = PAY_TRANCHES.find(t => t.id == val);
+        if (t) amtInput.value = Math.round(t.restant);
+        document.getElementById('payType').value = 'tranche';
+        this.name = 'tranche_id';
+    }
+});
+
+// Show/hide bank fields
+document.getElementById('payMode').addEventListener('change', function() {
+    document.getElementById('payBankFields').style.display = this.value === 'virement' ? '' : 'none';
+});
+</script>
+HTML;
+?>
+
+<!-- ══ Paiement modal ══════════════════════════════════════════════════════ -->
+<div class="modal fade" id="payModal" tabindex="-1" aria-labelledby="payModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-primary-siniyat text-white">
+                <h5 class="modal-title" id="payModalLabel">
+                    <i class="bi bi-cash-coin me-2"></i>
+                    Nouveau paiement — <?= e($eleve['nom'].' '.$eleve['prenoms']) ?>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST">
+                <?= csrfField() ?>
+                <input type="hidden" name="save_payment_inline" value="1">
+                <input type="hidden" name="eleve_id" value="<?= $id ?>">
+                <input type="hidden" id="payType" name="type_paiement" value="tranche">
+                <div class="modal-body">
+                    <!-- Situation rapide -->
+                    <?php if (!empty($situation)): ?>
+                    <div class="row g-2 text-center mb-3">
+                        <div class="col-4">
+                            <div class="p-2 bg-light rounded">
+                                <div class="small text-muted">Total dû</div>
+                                <div class="fw-bold"><?= formatMontant($situation['totalDu'] ?? 0) ?></div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded" style="background:#d1fae5;">
+                                <div class="small text-muted">Déjà payé</div>
+                                <div class="fw-bold text-success"><?= formatMontant($situation['paye'] ?? 0) ?></div>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <div class="p-2 rounded" style="background:#fee2e2;">
+                                <div class="small text-muted">Reste à payer</div>
+                                <div class="fw-bold text-danger"><?= formatMontant(max(0, $situation['reste'] ?? 0)) ?></div>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endif; ?>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Tranche <span class="text-danger">*</span></label>
+                            <select id="payTranche" name="tranche_id" class="form-select">
+                                <option value="">-- Sélectionner --</option>
+                                <?php foreach (($situation['tranches'] ?? []) as $t): ?>
+                                <option value="<?= $t['id'] ?>">
+                                    <?= e($t['libelle_fr']) ?>
+                                    (<?= formatMontant((float)$t['montant']) ?>
+                                    — reste : <?= formatMontant(max(0,(float)$t['montant']-(float)$t['paye'])) ?>)
+                                </option>
+                                <?php endforeach; ?>
+                                <option value="__solde">Solde complet (<?= formatMontant(max(0,$situation['reste']??0)) ?>)</option>
+                                <option value="__annexe">Frais annexe</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Montant versé (FCFA) <span class="text-danger">*</span></label>
+                            <div class="input-group">
+                                <input type="number" id="payMontant" name="montant" class="form-control"
+                                       min="1" step="1" required placeholder="0">
+                                <span class="input-group-text">FCFA</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Mode de paiement <span class="text-danger">*</span></label>
+                            <select id="payMode" name="mode_paiement" class="form-select">
+                                <option value="especes">Espèces</option>
+                                <option value="virement">Virement / Dépôt bancaire</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Date du paiement</label>
+                            <input type="datetime-local" name="date_paiement" class="form-control"
+                                   value="<?= date('Y-m-d\TH:i') ?>">
+                        </div>
+                        <!-- Champs bancaires -->
+                        <div id="payBankFields" class="col-12" style="display:none;">
+                            <div class="card bg-light border-0 p-3">
+                                <div class="row g-2">
+                                    <div class="col-md-5">
+                                        <label class="form-label small">Banque</label>
+                                        <input type="text" name="nom_banque" class="form-control form-control-sm"
+                                               value="<?= e(BANQUE_NOM) ?>">
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Référence bancaire</label>
+                                        <input type="text" name="reference_bancaire" class="form-control form-control-sm">
+                                    </div>
+                                    <div class="col-md-3">
+                                        <label class="form-label small">Date dépôt</label>
+                                        <input type="date" name="date_depot" class="form-control form-control-sm"
+                                               value="<?= date('Y-m-d') ?>">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label">Notes (optionnel)</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Observation, référence..."></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary-siniyat">
+                        <i class="bi bi-check-lg me-1"></i>Enregistrer le paiement
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <?php include dirname(__DIR__) . '/includes/footer.php'; ?>
