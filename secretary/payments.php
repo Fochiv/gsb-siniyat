@@ -182,8 +182,8 @@ include dirname(__DIR__) . '/includes/header.php';
                                     </option>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
-                                <option value="__solde" data-restant="<?= max(0,$situation['reste']??0) ?>">Solde complet</option>
-                                <option value="__annexe">Frais annexe</option>
+                                <option value="__solde" data-restant="<?= max(0,$situation['reste']??0) ?>">Paiement complet — Solde</option>
+                                <option value="__annexe">Frais annexes</option>
                             </select>
                         </div>
                         <div class="col-md-6">

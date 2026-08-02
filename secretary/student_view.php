@@ -412,8 +412,8 @@ HTML;
                                     — reste : <?= formatMontant(max(0,(float)$t['montant']-(float)$t['paye'])) ?>)
                                 </option>
                                 <?php endforeach; ?>
-                                <option value="__solde">Solde complet (<?= formatMontant(max(0,$situation['reste']??0)) ?>)</option>
-                                <option value="__annexe">Frais annexe</option>
+                                <option value="__solde">Paiement complet — Solde (<?= formatMontant(max(0,$situation['reste']??0)) ?>)</option>
+                                <option value="__annexe">Frais annexes</option>
                             </select>
                         </div>
                         <div class="col-md-6">
