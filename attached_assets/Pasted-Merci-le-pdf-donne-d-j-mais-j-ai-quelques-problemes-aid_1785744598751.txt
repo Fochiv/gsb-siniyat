@@ -1,0 +1,21 @@
+Merci, le pdf donne déjà mais j’ai quelques problemes aide moi a corriger ces differents BUGS dans le systeme: 
+1-	On a d’abord inserer un utilisateur qui a paye completement sa pension (50000) mais dans le dashboard au lieu de voir 49000 a cause des 2% de la reduction pour ceux qui vont un paiment complet la premiere fois(En une tranche), je vois encore 50000Fcfa 
+•	Ensuite concernant (Reste à recouvrer 50 000 FCFA) dans le dashboard Admin je ne comprends pas. Et pourtant on doit juste voir ici : Le Montant total restant à recouvrer (impayés) avec liste des élèves concernés. On peut ici faire une section dans le menu qui va contenir ces eleves chez L’admin et le secretaire en plus de voir ca sur le Dashboard. 
+•	On doit pouvoir avoir pour chaque eleve sa situation financiere dans l’etablissement, Tout paye, partiellement ou non paye. 
+•	J’ai aussi essaye d’inscrire un eleve, l’eleve a tout paye mais y’a eu aucune reduction, le système dit qu’il n’a pas paye, en plus y’a un recouvrement de -50000, et dans son recu ca aussi qu’il n’a pas paye. Dans la section financiere de l’eleve, je vois zero partout (Total dû, Total paye, reste a payer)et Pourtant dans l’historique de paiement je vois dans le champ tranche solde complet montant 50000 en espece
+Je met encore ici la grille des tarifs pour chaque classe : 
+La grille de frais doit être paramétrable par l'Admin, pas codée en dur, car elle peut changer chaque année. Pour l'année 2026-2027, la grille officielle (tirée de la brochure) est la suivante :
+Classe	1ère Tranche (Septembre)	2ème Tranche (Déc.-Janv.)	Autres frais (après inscription)	Total
+Pré-Maternelle / Pre-Nursery	50 000 FCFA	15 000 FCFA	5 000 FCFA	70 000 FCFA
+Maternelle / Nursery	35 000 FCFA	20 000 FCFA	5 000 FCFA	60 000 FCFA
+SIL au CM2 / Class 1 to Class 6	30 000 FCFA	15 000 FCFA	5 000 FCFA	50 000 FCFA
+•	Réduction automatique de 2% par enfant supplémentaire de la même famille (le système doit pouvoir lier des fratries).
+•	Réduction de 2% sur le total en cas de paiement intégral en une seule fois.
+
+2-	Je veux aussi que lors de l’ajout d’un paiement d’un eleve pendant son inscription, qu’on puisse choisir la tranche a payer donc on a une liste deroulante qui affiche et quand l’utilisateur choisit la tranche de l’eleve ca rempli automatiquement le champ du montant en fonction de la tranche et de la classe de l’eleve.
+
+
+3-	Ensuite quand je reduis la taille de l’ecran, au lieu par exemple que les tableaux (paiement recent, par classe)se reduisent aussi avec une barre de defilement horizontale, les donnees partent toutes a gauche et se classent de manière verticale sans le titres des differents champs . Je fais ce constat dans les grilles des frais aussi . Pareil pour le tableau paiement recent dans la page utilisateur(Aucune donnee est ecrit a gauche au lieu d’etre centrer au milieu du tableau quand on reduit). En essayant donc d’imprimer une liste des eleves d’une classe les donnees ne sont pas ordonnees. Parceque meme quand je veux imprimer au lieu que les donnees d’un eleve soit ur une meme ligne elle est classee verticalement et c’est pareil pour tous les autres eleves .
+4-	J’ai aussi vu en bas du Pdf replit.com/fochsalaoudineben… . J’espere que quand je vais heberger le site cela ne va pas s’afficher. 
+5-	L’utilisateur ou secretaire doit aussi voir le nombre totales des eleves dans le Dashboard, en plus de la Somme totale collectée (établissement entier)
+6-	Une Répartition par sexe (global et par classe) si possible dans les deux pages (Admin et Utilisateur)

@@ -182,7 +182,9 @@ include dirname(__DIR__) . '/includes/header.php';
                                     </option>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
-                                <option value="__solde" data-restant="<?= max(0,$situation['reste']??0) ?>">Paiement complet — Solde</option>
+                                <option value="__solde" data-restant="<?= max(0, ($situation['totalAvecReductionComplete'] ?? $situation['totalBrut'] ?? 0) - ($situation['paye'] ?? 0)) ?>" data-taux="<?= $situation['tauxReductionComplet'] ?? 0 ?>">
+                                    Paiement complet — Solde<?php if (($situation['tauxReductionComplet']??0)>0): ?> (<?= $situation['tauxReductionComplet'] ?>% réduction)<?php endif; ?>
+                                </option>
                                 <option value="__annexe">Frais annexes</option>
                             </select>
                         </div>
@@ -275,17 +277,39 @@ document.getElementById('student-search').addEventListener('input', function() {
     }, 300);
 });
 
-// Tranche selection — prefill amount with remaining
+// Tranche selection — prefill amount and type
 function updateTypePaiement(sel) {
     const opt = sel.options[sel.selectedIndex];
-    const restant = parseFloat(opt.getAttribute('data-restant')||'0');
-    if (restant > 0) document.getElementById('montant').value = Math.round(restant);
+    const restant = parseFloat(opt.getAttribute('data-restant') || '0');
+    const taux    = parseFloat(opt.getAttribute('data-taux')    || '0');
+    const montantInput = document.getElementById('montant');
+
+    if (restant > 0) montantInput.value = Math.round(restant);
+
     const tp = sel.value === '__solde' ? 'solde_complet' : (sel.value === '__annexe' ? 'annexe' : 'tranche');
     document.getElementById('type_paiement_hidden').value = tp;
+
+    // Show discount info when selecting full payment with reduction
+    let hint = document.getElementById('montant-hint');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'montant-hint';
+        hint.className = 'form-text';
+        montantInput.parentNode.parentNode.appendChild(hint);
+    }
+    hint.innerHTML = (tp === 'solde_complet' && taux > 0)
+        ? '<i class="bi bi-tag text-success me-1"></i>Réduction <strong>' + taux + '%</strong> déjà appliquée pour paiement complet.'
+        : '';
+
     // Blank tranche_id for special types
     if (sel.value.startsWith('__')) sel.name = '_tranche_noop';
     else sel.name = 'tranche_id';
 }
+
+// Bank fields toggle
+document.getElementById('mode_paiement').addEventListener('change', function() {
+    document.getElementById('bank-fields').style.display = this.value === 'virement' ? '' : 'none';
+});
 </script>
 HTML;
 include dirname(__DIR__) . '/includes/footer.php';

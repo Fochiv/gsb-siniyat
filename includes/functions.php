@@ -146,8 +146,15 @@ function getSituationFinanciere(int $eleveId): array {
     if ($paye >= $totalDu) $statut = 'paye';
     elseif ($paye > 0) $statut = 'partiel';
 
+    // Pre-compute what the student would owe if paying everything at once
+    // (applies the full-payment discount even before payment is made)
+    $tauxReductionComplet = min(($reductionFratrie + (float)getParametre('reduction_paiement_complet', (string)REDUCTION_PAIEMENT_COMPLET)), 20);
+    $montantReductionComplet = $totalBrut * $tauxReductionComplet / 100;
+    $totalAvecReductionComplete = $totalBrut - $montantReductionComplet;
+
     return compact('totalDu', 'totalBrut', 'paye', 'reste', 'statut', 'tranches',
-                   'tauxReduction', 'montantReduction', 'reductionFratrie', 'reductionComplet', 'fraisInscription');
+                   'tauxReduction', 'montantReduction', 'reductionFratrie', 'reductionComplet', 'fraisInscription',
+                   'totalAvecReductionComplete', 'tauxReductionComplet', 'montantReductionComplet');
 }
 
 function formatMontant(float $amount): string {

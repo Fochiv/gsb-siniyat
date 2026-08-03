@@ -223,8 +223,7 @@ $html .= <<<HTML3
   </table>
 
   <div class="footer-note">
-    Groupe Scolaire Bilingue SINIYAT &mdash; gestion-gsb-siniyat.com &mdash;
-    {$lblRights}
+    Groupe Scolaire Bilingue SINIYAT &mdash; {$lblRights}
   </div>
 </div>
 </body>

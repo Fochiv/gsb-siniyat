@@ -20,20 +20,36 @@ $totalPaye = $db->prepare("SELECT COALESCE(SUM(p.montant),0) FROM paiements p JO
 $totalPaye->execute([$yearId]);
 $montantPaye = (float)$totalPaye->fetchColumn();
 
-// Stats par statut paiement
+// Stats par statut paiement (avec réductions approximées)
+// total_du = brut tranches - 2% si paiement complet enregistré
 $statuts = $db->prepare("
     SELECT
-        SUM(CASE WHEN sit.statut='paye'   THEN 1 ELSE 0 END) AS nb_payes,
+        SUM(CASE WHEN sit.statut='paye'    THEN 1 ELSE 0 END) AS nb_payes,
         SUM(CASE WHEN sit.statut='partiel' THEN 1 ELSE 0 END) AS nb_partiels,
         SUM(CASE WHEN sit.statut='impaye'  THEN 1 ELSE 0 END) AS nb_impayes,
-        SUM(sit.total_du - sit.total_paye) AS total_reste
+        GREATEST(0, SUM(GREATEST(0, sit.total_du - sit.total_paye))) AS total_reste,
+        SUM(CASE WHEN e2.sexe='M' THEN 1 ELSE 0 END) AS nb_garcons,
+        SUM(CASE WHEN e2.sexe='F' THEN 1 ELSE 0 END) AS nb_filles
     FROM (
         SELECT e.id,
-            COALESCE(SUM(CASE WHEN p.annule=FALSE THEN p.montant ELSE 0 END),0) AS total_paye,
-            COALESCE((SELECT SUM(t.montant) FROM grille_frais g JOIN tranches t ON t.grille_id=g.id WHERE g.annee_id=e.annee_id AND g.niveau_id=e.niveau_id),0) AS total_du,
+            COALESCE(SUM(CASE WHEN p.annule=FALSE THEN p.montant ELSE 0 END), 0) AS total_paye,
+            COALESCE(
+                (SELECT SUM(t.montant) FROM grille_frais g JOIN tranches t ON t.grille_id=g.id
+                 WHERE g.annee_id=e.annee_id AND g.niveau_id=e.niveau_id), 0
+            ) * (1 - (
+                CASE WHEN EXISTS(
+                    SELECT 1 FROM paiements px WHERE px.eleve_id=e.id AND px.type_paiement='solde_complet' AND px.annule=FALSE
+                ) THEN COALESCE((SELECT valeur::numeric FROM parametres WHERE cle='reduction_paiement_complet'),2) ELSE 0 END
+            ) / 100.0) AS total_du,
             CASE
-                WHEN COALESCE(SUM(CASE WHEN p.annule=FALSE THEN p.montant ELSE 0 END),0) >= COALESCE((SELECT SUM(t.montant) FROM grille_frais g JOIN tranches t ON t.grille_id=g.id WHERE g.annee_id=e.annee_id AND g.niveau_id=e.niveau_id),0) THEN 'paye'
-                WHEN COALESCE(SUM(CASE WHEN p.annule=FALSE THEN p.montant ELSE 0 END),0) > 0 THEN 'partiel'
+                WHEN COALESCE(SUM(CASE WHEN p.annule=FALSE THEN p.montant ELSE 0 END), 0) >=
+                     COALESCE((SELECT SUM(t.montant) FROM grille_frais g JOIN tranches t ON t.grille_id=g.id
+                               WHERE g.annee_id=e.annee_id AND g.niveau_id=e.niveau_id), 0)
+                     * (1 - (CASE WHEN EXISTS(
+                         SELECT 1 FROM paiements px WHERE px.eleve_id=e.id AND px.type_paiement='solde_complet' AND px.annule=FALSE
+                     ) THEN COALESCE((SELECT valeur::numeric FROM parametres WHERE cle='reduction_paiement_complet'),2) ELSE 0 END) / 100.0)
+                THEN 'paye'
+                WHEN COALESCE(SUM(CASE WHEN p.annule=FALSE THEN p.montant ELSE 0 END), 0) > 0 THEN 'partiel'
                 ELSE 'impaye'
             END AS statut
         FROM eleves e
@@ -41,6 +57,7 @@ $statuts = $db->prepare("
         WHERE e.annee_id = ? AND e.actif = TRUE
         GROUP BY e.id, e.annee_id, e.niveau_id
     ) sit
+    JOIN eleves e2 ON e2.id = sit.id
 ");
 $statuts->execute([$yearId]);
 $statRow = $statuts->fetch();
@@ -158,6 +175,34 @@ include dirname(__DIR__) . '/includes/header.php';
     </div>
 </div>
 
+<!-- Gender breakdown -->
+<div class="row g-3 mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body py-2">
+                <div class="d-flex flex-wrap align-items-center gap-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-gender-male text-primary fs-4"></i>
+                        <div>
+                            <div class="small text-muted">Garçons</div>
+                            <div class="fw-bold text-primary"><?= (int)($statRow['nb_garcons']??0) ?></div>
+                        </div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-gender-female text-danger fs-4"></i>
+                        <div>
+                            <div class="small text-muted">Filles</div>
+                            <div class="fw-bold text-danger"><?= (int)($statRow['nb_filles']??0) ?></div>
+                        </div>
+                    </div>
+                    <div class="vr"></div>
+                    <small class="text-muted">Répartition par sexe — année scolaire <?= e($activeYear['libelle']) ?></small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Charts + By class -->
 <div class="row g-3 mb-4">
     <div class="col-lg-8">
@@ -184,17 +229,17 @@ include dirname(__DIR__) . '/includes/header.php';
                         <tbody>
                             <?php foreach ($classeStats as $cs): ?>
                             <tr>
-                                <td><strong><?= e($cs['nom_fr']) ?></strong></td>
-                                <td>
+                                <td data-label="Classe"><strong><?= e($cs['nom_fr']) ?></strong></td>
+                                <td data-label="Sect.">
                                     <span class="badge <?= $cs['section']==='anglophone'?'badge-anglophone':'badge-francophone' ?>" style="font-size:.65rem;">
                                         <?= $cs['section']==='anglophone'?'EN':'FR' ?>
                                     </span>
                                 </td>
-                                <td><?= $cs['nb_eleves'] ?></td>
-                                <td><?= $cs['nb_garcons'] ?></td>
-                                <td><?= $cs['nb_filles'] ?></td>
-                                <td><?= formatMontant((float)$cs['total_paye']) ?></td>
-                                <td>
+                                <td data-label="Élèves"><?= $cs['nb_eleves'] ?></td>
+                                <td data-label="Garçons"><?= $cs['nb_garcons'] ?></td>
+                                <td data-label="Filles"><?= $cs['nb_filles'] ?></td>
+                                <td data-label="Encaissé"><?= formatMontant((float)$cs['total_paye']) ?></td>
+                                <td data-label="">
                                     <a href="/secretary/classes.php?annee=<?= $yearId ?>&section=<?= $cs['section'] ?>&niveau=<?= $cs['niveau_id'] ?>"
                                        class="btn btn-sm btn-outline-siniyat btn-action" title="Voir la liste">
                                         <i class="bi bi-eye"></i>
@@ -265,21 +310,21 @@ include dirname(__DIR__) . '/includes/header.php';
                 <tbody>
                     <?php foreach ($recentPayments as $p): ?>
                     <tr>
-                        <td><span class="badge bg-secondary">#<?= e($p['numero_recu'] ?? '—') ?></span></td>
-                        <td><code><?= e($p['matricule']) ?></code></td>
-                        <td><strong><?= e($p['nom'] . ' ' . $p['prenoms']) ?></strong></td>
-                        <td><?= e($p['classe']) ?></td>
-                        <td class="fw-semibold"><?= formatMontant((float)$p['montant']) ?></td>
-                        <td>
+                        <td data-label="Reçu N°"><span class="badge bg-secondary">#<?= e($p['numero_recu'] ?? '—') ?></span></td>
+                        <td data-label="Matricule"><code><?= e($p['matricule']) ?></code></td>
+                        <td data-label="Élève"><strong><?= e($p['nom'] . ' ' . $p['prenoms']) ?></strong></td>
+                        <td data-label="Classe"><?= e($p['classe']) ?></td>
+                        <td data-label="Montant" class="fw-semibold"><?= formatMontant((float)$p['montant']) ?></td>
+                        <td data-label="Mode">
                             <?php if ($p['mode_paiement'] === 'especes'): ?>
                             <span class="badge bg-success"><i class="bi bi-cash me-1"></i>Espèces</span>
                             <?php else: ?>
                             <span class="badge bg-info text-dark"><i class="bi bi-bank me-1"></i>Virement</span>
                             <?php endif; ?>
                         </td>
-                        <td class="text-muted small"><?= e($p['agent'] ?? '—') ?></td>
-                        <td class="text-muted small"><?= date('d/m/Y H:i', strtotime($p['date_paiement'])) ?></td>
-                        <td>
+                        <td data-label="Agent" class="text-muted small"><?= e($p['agent'] ?? '—') ?></td>
+                        <td data-label="Date" class="text-muted small"><?= date('d/m/Y H:i', strtotime($p['date_paiement'])) ?></td>
+                        <td data-label="">
                             <?php if ($p['numero_recu']): ?>
                             <a href="/pdf/receipt.php?paiement_id=<?= $p['id'] ?>" target="_blank"
                                class="btn btn-sm btn-outline-secondary btn-action" title="Imprimer">

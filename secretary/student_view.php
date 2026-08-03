@@ -323,22 +323,40 @@ foreach (($situation['tranches'] ?? []) as $t) {
         'restant' => max(0, (float)$t['montant'] - (float)$t['paye']),
     ];
 }
-$resteTotal = max(0, $situation['reste'] ?? 0);
+// For "solde complet" use pre-discounted total minus already paid
+$paye = (float)($situation['paye'] ?? 0);
+$totalAvecRemise = (float)($situation['totalAvecReductionComplete'] ?? $situation['totalBrut'] ?? 0);
+$resteComplet = max(0, $totalAvecRemise - $paye);
+$tauxRemise   = (float)($situation['tauxReductionComplet'] ?? 0);
 $tranchesJson = json_encode($tranchesJs, JSON_UNESCAPED_UNICODE);
 
 $extraScripts = <<<HTML
 <script>
-const PAY_TRANCHES = {$tranchesJson};
-const PAY_RESTE    = {$resteTotal};
+const PAY_TRANCHES    = {$tranchesJson};
+const PAY_RESTE_SOLDE = {$resteComplet};
+const PAY_TAUX_REMISE = {$tauxRemise};
 
 // Auto-fill amount when tranche selected
 document.getElementById('payTranche').addEventListener('change', function() {
-    const val = this.value;
+    const val      = this.value;
     const amtInput = document.getElementById('payMontant');
+
+    let hint = document.getElementById('pay-montant-hint');
+    if (!hint) {
+        hint = document.createElement('div');
+        hint.id = 'pay-montant-hint';
+        hint.className = 'form-text';
+        amtInput.parentNode.parentNode.appendChild(hint);
+    }
+    hint.innerHTML = '';
+
     if (val === '__solde') {
-        amtInput.value = Math.round(PAY_RESTE);
+        amtInput.value = Math.round(PAY_RESTE_SOLDE);
         document.getElementById('payType').value = 'solde_complet';
         this.name = '_noop';
+        if (PAY_TAUX_REMISE > 0) {
+            hint.innerHTML = '<i class="bi bi-tag text-success me-1"></i>Réduction <strong>' + PAY_TAUX_REMISE + '%</strong> déjà appliquée pour paiement complet.';
+        }
     } else if (val === '__annexe') {
         amtInput.value = '';
         document.getElementById('payType').value = 'annexe';
@@ -412,7 +430,10 @@ HTML;
                                     — reste : <?= formatMontant(max(0,(float)$t['montant']-(float)$t['paye'])) ?>)
                                 </option>
                                 <?php endforeach; ?>
-                                <option value="__solde">Paiement complet — Solde (<?= formatMontant(max(0,$situation['reste']??0)) ?>)</option>
+                                <option value="__solde" data-restant="<?= max(0, ($situation['totalAvecReductionComplete'] ?? $situation['totalBrut'] ?? 0) - ($situation['paye'] ?? 0)) ?>" data-taux="<?= $situation['tauxReductionComplet'] ?? 0 ?>">
+                                    Paiement complet — Solde
+                                    (<?= formatMontant(max(0, ($situation['totalAvecReductionComplete'] ?? $situation['totalBrut'] ?? 0) - ($situation['paye'] ?? 0))) ?>)<?php if (($situation['tauxReductionComplet']??0)>0): ?> — <?= $situation['tauxReductionComplet'] ?>% réduction<?php endif; ?>
+                                </option>
                                 <option value="__annexe">Frais annexes</option>
                             </select>
                         </div>

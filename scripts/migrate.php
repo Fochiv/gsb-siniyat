@@ -171,6 +171,90 @@ try {
         mlog('schema.sql re-applied (idempotent).');
     }
 
+    // ── Migration: Seed fee grids for 2026-2027 if not yet configured ────────
+    $hasGrids = (int)$pdo->query("SELECT COUNT(*) FROM grille_frais")->fetchColumn();
+    if (!$hasGrids) {
+        mlog('No fee grids found — seeding default grille for 2026-2027.');
+        $anneeId = (int)$pdo->query(
+            "SELECT id FROM annees_scolaires WHERE libelle='2026-2027' LIMIT 1"
+        )->fetchColumn();
+
+        if ($anneeId) {
+            // Helper: upsert a grille + its tranches
+            // Groups per the official brochure:
+            //   Pre-Nursery / Pré-Maternelle : T1=50000, T2=15000, inscription=5000
+            //   Nursery / Maternelle         : T1=35000, T2=20000, inscription=5000
+            //   Class 1-6 / SIL-CM2          : T1=30000, T2=15000, inscription=5000
+
+            $grilles = [
+                // [niveau_nom_fr, frais_inscription, [[libelle_fr, libelle_en, montant, echeance], ...]]
+                ['Pré-Maternelle', 5000, [
+                    ['1ère Tranche', '1st Instalment', 50000, 'Septembre'],
+                    ['2ème Tranche', '2nd Instalment', 15000, 'Déc.–Janv.'],
+                ]],
+                ['Pre-Nursery', 5000, [
+                    ['1st Instalment', '1st Instalment', 50000, 'September'],
+                    ['2nd Instalment', '2nd Instalment', 15000, 'Dec.–Jan.'],
+                ]],
+                ['Maternelle', 5000, [
+                    ['1ère Tranche', '1st Instalment', 35000, 'Septembre'],
+                    ['2ème Tranche', '2nd Instalment', 20000, 'Déc.–Janv.'],
+                ]],
+                ['Nursery', 5000, [
+                    ['1st Instalment', '1st Instalment', 35000, 'September'],
+                    ['2nd Instalment', '2nd Instalment', 20000, 'Dec.–Jan.'],
+                ]],
+            ];
+
+            // SIL→CM2 and Class 1→6 share the same tariff
+            $primaryFR = ['SIL','CP','CE1','CE2','CM1','CM2'];
+            $primaryEN = ['Class 1','Class 2','Class 3','Class 4','Class 5','Class 6'];
+            foreach ($primaryFR as $nom) {
+                $grilles[] = [$nom, 5000, [
+                    ['1ère Tranche', '1st Instalment', 30000, 'Septembre'],
+                    ['2ème Tranche', '2nd Instalment', 15000, 'Déc.–Janv.'],
+                ]];
+            }
+            foreach ($primaryEN as $nom) {
+                $grilles[] = [$nom, 5000, [
+                    ['1st Instalment', '1st Instalment', 30000, 'September'],
+                    ['2nd Instalment', '2nd Instalment', 15000, 'Dec.–Jan.'],
+                ]];
+            }
+
+            $insGrille  = $pdo->prepare(
+                "INSERT INTO grille_frais (annee_id, niveau_id, frais_inscription)
+                 SELECT ?, n.id, ?
+                 FROM niveaux n WHERE n.nom_fr = ?
+                 ON CONFLICT (annee_id, niveau_id) DO NOTHING"
+            );
+            $getTranches = $pdo->prepare("SELECT COUNT(*) FROM tranches WHERE grille_id=?");
+            $insTranche = $pdo->prepare(
+                "INSERT INTO tranches (grille_id, numero, libelle_fr, libelle_en, montant, echeance_indicative)
+                 VALUES (?, ?, ?, ?, ?, ?)
+                 ON CONFLICT (grille_id, numero) DO NOTHING"
+            );
+            $getGrilleId = $pdo->prepare(
+                "SELECT id FROM grille_frais WHERE annee_id=? AND niveau_id=(SELECT id FROM niveaux WHERE nom_fr=? LIMIT 1)"
+            );
+
+            foreach ($grilles as [$nomFr, $inscription, $tranches]) {
+                $insGrille->execute([$anneeId, $inscription, $nomFr]);
+                $getGrilleId->execute([$anneeId, $nomFr]);
+                $grilleId = (int)$getGrilleId->fetchColumn();
+                if (!$grilleId) continue;
+                foreach ($tranches as $i => [$lFr, $lEn, $montant, $ech]) {
+                    $insTranche->execute([$grilleId, $i+1, $lFr, $lEn, $montant, $ech]);
+                }
+            }
+            mlog('Fee grid seeded: ' . count($grilles) . ' classes configured.');
+        } else {
+            mlog('WARNING: Year 2026-2027 not found — fee grid seeding skipped.');
+        }
+    } else {
+        mlog("Fee grids already present ($hasGrids grilles) — skipping seed.");
+    }
+
     // ── Verify: required seed levels are present ─────────────────────────────
     $seedLevels = ['Pré-Maternelle', 'CM2', 'Pre-Nursery', 'Class 6'];
     foreach ($seedLevels as $name) {

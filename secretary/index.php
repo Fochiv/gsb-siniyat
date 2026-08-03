@@ -25,6 +25,26 @@ $inscriptions = $db->prepare("
 $inscriptions->execute([$user['user_id']]);
 $nbInscriptions = (int)$inscriptions->fetchColumn();
 
+// Stats globales de l'établissement (année active)
+$globalStats = $db->prepare("
+    SELECT
+        COUNT(*) AS nb_eleves,
+        COALESCE(SUM(CASE WHEN sexe='M' THEN 1 ELSE 0 END), 0) AS nb_garcons,
+        COALESCE(SUM(CASE WHEN sexe='F' THEN 1 ELSE 0 END), 0) AS nb_filles
+    FROM eleves WHERE annee_id=? AND actif=TRUE
+");
+$globalStats->execute([$activeYear['id']]);
+$globalRow = $globalStats->fetch();
+
+$totalCollecte = $db->prepare("
+    SELECT COALESCE(SUM(p.montant),0)
+    FROM paiements p
+    JOIN eleves e ON e.id=p.eleve_id
+    WHERE e.annee_id=? AND p.annule=FALSE
+");
+$totalCollecte->execute([$activeYear['id']]);
+$montantTotal = (float)$totalCollecte->fetchColumn();
+
 // Paiements récents par cet utilisateur
 $recentPay = $db->prepare("
     SELECT p.*, e.nom, e.prenoms, e.matricule, n.nom_fr AS classe, r.numero_recu
@@ -43,36 +63,73 @@ include dirname(__DIR__) . '/includes/header.php';
 <div class="fade-in-load">
 <h1 class="page-title"><i class="bi bi-speedometer2"></i> <span data-i18n="dashboard.title">Tableau de bord</span></h1>
 
-<!-- Quick stats -->
-<div class="row g-3 mb-4">
-    <div class="col-sm-4">
+<!-- Stats globales établissement -->
+<div class="row g-3 mb-3">
+    <div class="col-6 col-md-3">
         <div class="card stat-card h-100">
             <div class="card-body d-flex align-items-center justify-content-between">
                 <div>
-                    <div class="text-muted small">Inscriptions aujourd'hui</div>
+                    <div class="text-muted small">Total élèves inscrits</div>
+                    <div class="stat-value text-primary-siniyat"><?= (int)($globalRow['nb_eleves']??0) ?></div>
+                </div>
+                <i class="bi bi-people stat-icon text-primary-siniyat"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card stat-success h-100">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small">Total collecté (établissement)</div>
+                    <div class="stat-value text-success" style="font-size:1.1rem;"><?= formatMontant($montantTotal) ?></div>
+                </div>
+                <i class="bi bi-cash-coin stat-icon text-success"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small">Garçons</div>
+                    <div class="stat-value text-primary"><?= (int)($globalRow['nb_garcons']??0) ?></div>
+                </div>
+                <i class="bi bi-gender-male stat-icon text-primary"></i>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card stat-card stat-danger h-100">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small">Filles</div>
+                    <div class="stat-value text-danger"><?= (int)($globalRow['nb_filles']??0) ?></div>
+                </div>
+                <i class="bi bi-gender-female stat-icon text-danger"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick stats personnels -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex align-items-center justify-content-between">
+                <div>
+                    <div class="text-muted small">Mes inscriptions aujourd'hui</div>
                     <div class="stat-value text-primary-siniyat"><?= $nbInscriptions ?></div>
                 </div>
                 <i class="bi bi-person-plus stat-icon text-primary-siniyat"></i>
             </div>
         </div>
     </div>
-    <div class="col-sm-4">
+    <div class="col-sm-6">
         <div class="card stat-card stat-success h-100">
             <div class="card-body d-flex align-items-center justify-content-between">
                 <div>
-                    <div class="text-muted small">Paiements aujourd'hui</div>
-                    <div class="stat-value text-success"><?= (int)$todayStats['nb'] ?></div>
-                </div>
-                <i class="bi bi-receipt stat-icon text-success"></i>
-            </div>
-        </div>
-    </div>
-    <div class="col-sm-4">
-        <div class="card stat-card stat-success h-100">
-            <div class="card-body d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="text-muted small">Total encaissé aujourd'hui</div>
-                    <div class="stat-value text-success" style="font-size:1.1rem;"><?= formatMontant((float)$todayStats['total']) ?></div>
+                    <div class="text-muted small">Mes encaissements aujourd'hui</div>
+                    <div class="stat-value text-success" style="font-size:1.1rem;"><?= formatMontant((float)$todayStats['total']) ?> <small class="text-muted fw-normal" style="font-size:.75rem;">(<?= (int)$todayStats['nb'] ?> paiements)</small></div>
                 </div>
                 <i class="bi bi-cash-coin stat-icon text-success"></i>
             </div>
@@ -143,7 +200,7 @@ include dirname(__DIR__) . '/includes/header.php';
                         <td data-label="Montant" class="fw-semibold"><?= formatMontant((float)$p['montant']) ?></td>
                         <td data-label="Mode"><?= $p['mode_paiement'] === 'especes' ? '<i class="bi bi-cash text-success"></i> Espèces' : '<i class="bi bi-bank text-info"></i> Virement' ?></td>
                         <td data-label="Date" class="text-muted small"><?= date('d/m/Y H:i', strtotime($p['date_paiement'])) ?></td>
-                        <td>
+                        <td data-label="">
                             <?php if ($p['numero_recu']): ?>
                             <a href="/pdf/receipt.php?paiement_id=<?= $p['id'] ?>" target="_blank"
                                class="btn btn-sm btn-outline-secondary btn-action">
