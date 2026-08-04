@@ -96,6 +96,9 @@ include dirname(__DIR__) . '/includes/header.php';
                     <span class="input-group-text"><i class="bi bi-search"></i></span>
                     <input type="text" id="student-search" class="form-control"
                            placeholder="Rechercher nom, matricule..." autocomplete="off">
+                    <button type="button" id="btn-student-search" class="btn btn-primary-siniyat">
+                        Rechercher
+                    </button>
                 </div>
                 <div id="student-suggestions" class="list-group mb-2"></div>
                 <div id="eleve-info-box" class="alert alert-info py-2 mb-0" <?= $eleve ? '' : 'style="display:none;"' ?>>
@@ -196,9 +199,9 @@ include dirname(__DIR__) . '/includes/header.php';
                                     <?php endif; ?>
                                 <?php endif; ?>
                                 <option value="__solde" data-restant="<?= max(0, ($situation['totalAvecReductionComplete'] ?? $situation['totalBrut'] ?? 0) - ($situation['paye'] ?? 0)) ?>" data-taux="<?= $situation['tauxReductionComplet'] ?? 0 ?>">
-                                    🏦 Paiement complet — Solde intégral<?php if (($situation['tauxReductionComplet']??0)>0): ?> (<?= $situation['tauxReductionComplet'] ?>% réduction)<?php endif; ?>
+                                    Paiement complet — Solde intégral<?php if (($situation['tauxReductionComplet']??0)>0): ?> (<?= $situation['tauxReductionComplet'] ?>% réduction)<?php endif; ?>
                                 </option>
-                                <option value="__annexe">📋 Frais annexes</option>
+                                <option value="__annexe">Frais annexes</option>
                             </select>
                             <?php if (!$eleve): ?>
                             <div class="form-text text-warning">
@@ -294,25 +297,35 @@ $extraScripts = <<<HTML
 let searchTimer;
 let currentEleveId = {$eleveId};
 
+async function runStudentSearch() {
+    const q = document.getElementById('student-search').value.trim();
+    if (q.length < 2) { document.getElementById('student-suggestions').innerHTML=''; return; }
+    try {
+        const data = await apiGet('/api/students.php?q='+encodeURIComponent(q)+'&limit=8');
+        const box = document.getElementById('student-suggestions');
+        box.innerHTML = '';
+        (data.students||[]).forEach(s => {
+            const a = document.createElement('a');
+            a.href = '#';
+            a.className = 'list-group-item list-group-item-action py-2';
+            a.innerHTML = '<strong>'+s.nom+' '+s.prenoms+'</strong> <small class="text-muted ms-2">'+s.matricule+' — '+s.classe+'</small>';
+            a.addEventListener('click', e => { e.preventDefault(); loadEleve(s.id); });
+            box.appendChild(a);
+        });
+    } catch(e) {}
+}
+
 document.getElementById('student-search').addEventListener('input', function() {
     clearTimeout(searchTimer);
-    const q = this.value.trim();
-    if (q.length < 2) { document.getElementById('student-suggestions').innerHTML=''; return; }
-    searchTimer = setTimeout(async () => {
-        try {
-            const data = await apiGet('/api/students.php?q='+encodeURIComponent(q)+'&limit=8');
-            const box = document.getElementById('student-suggestions');
-            box.innerHTML = '';
-            (data.students||[]).forEach(s => {
-                const a = document.createElement('a');
-                a.href = '#';
-                a.className = 'list-group-item list-group-item-action py-2';
-                a.innerHTML = '<strong>'+s.nom+' '+s.prenoms+'</strong> <small class="text-muted ms-2">'+s.matricule+' — '+s.classe+'</small>';
-                a.addEventListener('click', e => { e.preventDefault(); loadEleve(s.id); });
-                box.appendChild(a);
-            });
-        } catch(e) {}
-    }, 300);
+    searchTimer = setTimeout(runStudentSearch, 300);
+});
+
+document.getElementById('student-search').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') { e.preventDefault(); clearTimeout(searchTimer); runStudentSearch(); }
+});
+
+document.getElementById('btn-student-search').addEventListener('click', function() {
+    clearTimeout(searchTimer); runStudentSearch();
 });
 
 async function loadEleve(id) {
@@ -363,12 +376,12 @@ async function loadEleve(id) {
         soldeOpt.value = '__solde';
         soldeOpt.setAttribute('data-restant', soldeRestant);
         soldeOpt.setAttribute('data-taux', sit.tauxReductionComplet);
-        soldeOpt.textContent = '🏦 Paiement complet — Solde intégral' + (sit.tauxReductionComplet > 0 ? ' ('+sit.tauxReductionComplet+'% réduction)' : '');
+        soldeOpt.textContent = 'Paiement complet — Solde intégral' + (sit.tauxReductionComplet > 0 ? ' ('+sit.tauxReductionComplet+'% réduction)' : '');
         sel.appendChild(soldeOpt);
 
         const annexeOpt = document.createElement('option');
         annexeOpt.value = '__annexe';
-        annexeOpt.textContent = '📋 Frais annexes';
+        annexeOpt.textContent = 'Frais annexes';
         sel.appendChild(annexeOpt);
 
         // Enable submit button
