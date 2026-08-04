@@ -32,11 +32,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_payment_inline']
             $stmt = $db->prepare("INSERT INTO paiements
                 (eleve_id,tranche_id,type_paiement,montant,mode_paiement,nom_banque,
                  reference_bancaire,date_depot,date_paiement,encaisse_par,notes)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING id");
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)");
             $stmt->execute([$id,$trancheId,$typePaiement,$montant,$mode,
                 $nomBanque?:null,$refBancaire?:null,$dateDepot,$datePaiement,
                 $user['user_id'],$notes?:null]);
-            $newPayId = (int)$stmt->fetchColumn();
+            $newPayId = (int)$db->lastInsertId();
             $numRecu  = generateNumeroRecu();
             $db->prepare("INSERT INTO recus (numero_recu,paiement_id,eleve_id,genere_par)
                 VALUES (?,?,?,?)")->execute([$numRecu,$newPayId,$id,$user['user_id']]);

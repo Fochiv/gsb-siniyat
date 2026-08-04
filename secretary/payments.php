@@ -34,10 +34,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['save_payment'])) {
             $stmt = $db->prepare("INSERT INTO paiements
                 (eleve_id,tranche_id,type_paiement,montant,mode_paiement,nom_banque,reference_bancaire,
                  date_depot,date_paiement,encaisse_par,notes)
-                VALUES (?,?,?,?,?,?,?,?,?,?,?) RETURNING id");
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)");
             $stmt->execute([$eleveId,$trancheId,$typePaiement,$montant,$mode,
                 $nomBanque?:null,$refBancaire?:null,$dateDepot,$datePaiement,$user['user_id'],$notes?:null]);
-            $newPaiementId = (int)$stmt->fetchColumn();
+            $newPaiementId = (int)$db->lastInsertId();
 
             // Generate receipt
             $numRecu = generateNumeroRecu();

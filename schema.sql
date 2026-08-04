@@ -186,9 +186,9 @@ CREATE TABLE IF NOT EXISTS journal_audit (
 -- Données initiales
 -- ================================================================
 
--- Compte admin (login: admin / mot de passe: password)
+-- Compte admin (login: GSB-Siniyat / mot de passe: Siniyat@2026)
 INSERT INTO utilisateurs (nom, prenom, login, mot_de_passe, role, actif)
-VALUES ('Admin', 'Super', 'admin', '$2y$12$3J2bjJ84EyZaR.B8vD8zIusH2HxZNtmK.S9jkUNhc6ZkxH.rw12sC', 'admin', TRUE)
+VALUES ('Admin', 'GSB', 'GSB-Siniyat', '$2y$12$M3PMNM0CjUN8H6W1wo1YrOxMGJVFjcLNZ5xEIT8WTFZl7NWV/a2Ii', 'admin', TRUE)
 ON CONFLICT (login) DO NOTHING;
 
 -- Année scolaire active

@@ -86,11 +86,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $db->prepare("INSERT INTO eleves (matricule,nom,prenoms,sexe,date_naissance,lieu_naissance,
                     quartier,adresse,nom_pere,tel_pere,nom_mere,tel_mere,nom_tuteur,tel_tuteur,contact_urgence,
                     annee_id,niveau_id,statut_eleve,famille_id,inscrit_par)
-                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) RETURNING id");
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
                 $stmt->execute([$matricule,$nom,$prenoms,$sexe,$dateNais,$lieuNais,$quartier,$adresse,
                     $nomPere,$telPere,$nomMere,$telMere,$nomTuteur,$telTuteur,$urgence,
                     $anneeId,$niveauId,$statutEl,$familleId,$user['user_id']]);
-                $newId = (int)$stmt->fetchColumn();
+                $newId = (int)$db->lastInsertId();
 
                 // Insert docs
                 $db->prepare("INSERT INTO documents_eleve (eleve_id,photos_identite,acte_naissance,carnet_vaccination,

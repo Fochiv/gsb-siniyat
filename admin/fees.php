@@ -21,12 +21,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($action === 'save_params') {
         $redComplet = (float)str_replace(',','.', $_POST['reduction_paiement_complet'] ?? '2');
         $redFratrie = (float)str_replace(',','.', $_POST['reduction_fratrie'] ?? '2');
-        $db->prepare("INSERT INTO parametres (cle,valeur,updated_at) VALUES ('reduction_paiement_complet',?,NOW())
-            ON CONFLICT (cle) DO UPDATE SET valeur=EXCLUDED.valeur, updated_at=NOW()")
-            ->execute([$redComplet]);
-        $db->prepare("INSERT INTO parametres (cle,valeur,updated_at) VALUES ('reduction_fratrie',?,NOW())
-            ON CONFLICT (cle) DO UPDATE SET valeur=EXCLUDED.valeur, updated_at=NOW()")
-            ->execute([$redFratrie]);
+        foreach ([['reduction_paiement_complet', $redComplet], ['reduction_fratrie', $redFratrie]] as [$cle, $val]) {
+            try {
+                $db->prepare("INSERT INTO parametres (cle,valeur,updated_at) VALUES (?,?,NOW())")->execute([$cle,$val]);
+            } catch (PDOException $e) {
+                $db->prepare("UPDATE parametres SET valeur=?, updated_at=NOW() WHERE cle=?")->execute([$val,$cle]);
+            }
+        }
         auditLog($user['user_id'],'MODIF_PARAMETRES','parametres',0,"Réductions: complet={$redComplet}%, fratrie={$redFratrie}%");
         $message = 'Paramètres de réduction mis à jour.'; $messageType = 'success';
     }
@@ -36,10 +37,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $niveauId = (int)$_POST['niveau_id'];
         $fraisInscription = (float)str_replace(',','.', $_POST['frais_inscription']??'0');
 
-        // Upsert grid
-        $db->prepare("INSERT INTO grille_frais (annee_id,niveau_id,frais_inscription) VALUES (?,?,?)
-            ON CONFLICT (annee_id,niveau_id) DO UPDATE SET frais_inscription=EXCLUDED.frais_inscription")
-            ->execute([$anneeId,$niveauId,$fraisInscription]);
+        // Upsert grid (compatible MySQL et PostgreSQL)
+        try {
+            $db->prepare("INSERT INTO grille_frais (annee_id,niveau_id,frais_inscription) VALUES (?,?,?)")
+               ->execute([$anneeId,$niveauId,$fraisInscription]);
+        } catch (PDOException $e) {
+            $db->prepare("UPDATE grille_frais SET frais_inscription=? WHERE annee_id=? AND niveau_id=?")
+               ->execute([$fraisInscription,$anneeId,$niveauId]);
+        }
 
         $gridStmt = $db->prepare("SELECT id FROM grille_frais WHERE annee_id=? AND niveau_id=?");
         $gridStmt->execute([$anneeId,$niveauId]);
@@ -54,12 +59,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $montant = (float)str_replace(',','.', $t['montant']??'0');
             $echeance = trim($t['echeance'] ?? '');
             if ($libFr && $montant > 0) {
-                $db->prepare("INSERT INTO tranches (grille_id,numero,libelle_fr,libelle_en,montant,echeance_indicative)
-                    VALUES (?,?,?,?,?,?)
-                    ON CONFLICT (grille_id,numero) DO UPDATE SET
-                    libelle_fr=EXCLUDED.libelle_fr, libelle_en=EXCLUDED.libelle_en,
-                    montant=EXCLUDED.montant, echeance_indicative=EXCLUDED.echeance_indicative")
-                    ->execute([$gridId,$num,$libFr,$libEn,$montant,$echeance?:null]);
+                try {
+                    $db->prepare("INSERT INTO tranches (grille_id,numero,libelle_fr,libelle_en,montant,echeance_indicative)
+                        VALUES (?,?,?,?,?,?)")
+                        ->execute([$gridId,$num,$libFr,$libEn,$montant,$echeance?:null]);
+                } catch (PDOException $e) {
+                    $db->prepare("UPDATE tranches SET libelle_fr=?,libelle_en=?,montant=?,echeance_indicative=?
+                        WHERE grille_id=? AND numero=?")
+                        ->execute([$libFr,$libEn,$montant,$echeance?:null,$gridId,$num]);
+                }
             }
         }
         // Delete removed tranches
@@ -103,9 +111,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action']??'') === 'init_gr
     $initYearId = (int)$_POST['annee_id'];
     $niveauxAll = getDB()->query("SELECT id FROM niveaux WHERE actif=TRUE")->fetchAll();
     foreach ($niveauxAll as $n) {
-        $db->prepare("INSERT INTO grille_frais (annee_id,niveau_id,frais_inscription)
-            VALUES (?,?,0) ON CONFLICT (annee_id,niveau_id) DO NOTHING")
-            ->execute([$initYearId, $n['id']]);
+        try {
+            $db->prepare("INSERT INTO grille_frais (annee_id,niveau_id,frais_inscription) VALUES (?,?,0)")
+               ->execute([$initYearId, $n['id']]);
+        } catch (PDOException $e) { /* doublon ignoré */ }
     }
     auditLog($user['user_id'],'INIT_GRILLE_FRAIS','grille_frais',0,"Initialisation grilles année $initYearId");
     // Reload

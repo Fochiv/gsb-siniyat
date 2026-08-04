@@ -34,26 +34,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 // Copy fee structure from previous year
                 if ($prevYear) {
-                    $prevGrids = $db->prepare("SELECT g.*, array_agg(t.*) FROM grille_frais g LEFT JOIN tranches t ON t.grille_id=g.id WHERE g.annee_id=? GROUP BY g.id");
-                    $prevGrids->execute([$prevYear['id']]);
-                    $grids = $db->prepare("SELECT * FROM grille_frais WHERE annee_id=?")->execute([$prevYear['id']]);
-
-                    // Copy grids
+                    // Copy grids (compatible MySQL et PostgreSQL)
                     $gridRows = $db->prepare("SELECT g.*, n.id AS niv_id FROM grille_frais g JOIN niveaux n ON n.id=g.niveau_id WHERE g.annee_id=?");
                     $gridRows->execute([$prevYear['id']]);
                     foreach ($gridRows->fetchAll() as $g) {
-                        $db->prepare("INSERT INTO grille_frais (annee_id,niveau_id,frais_inscription) VALUES (?,?,?)
-                            ON CONFLICT (annee_id,niveau_id) DO NOTHING")
-                            ->execute([$newYearId, $g['niveau_id'], $g['frais_inscription']]);
-                        $newGridId = (int)$db->prepare("SELECT id FROM grille_frais WHERE annee_id=? AND niveau_id=?")
-                                            ->execute([$newYearId,$g['niveau_id']]) ? $db->query("SELECT id FROM grille_frais WHERE annee_id=$newYearId AND niveau_id={$g['niveau_id']}")->fetchColumn() : 0;
+                        try {
+                            $db->prepare("INSERT INTO grille_frais (annee_id,niveau_id,frais_inscription) VALUES (?,?,?)")
+                               ->execute([$newYearId, $g['niveau_id'], $g['frais_inscription']]);
+                        } catch (PDOException $e) { /* doublon ignoré */ }
+                        $ngStmt = $db->prepare("SELECT id FROM grille_frais WHERE annee_id=? AND niveau_id=?");
+                        $ngStmt->execute([$newYearId, $g['niveau_id']]);
+                        $newGridId = (int)$ngStmt->fetchColumn();
+                        if (!$newGridId) continue;
                         // Copy tranches
                         $prevTranches = $db->prepare("SELECT * FROM tranches WHERE grille_id=?");
                         $prevTranches->execute([$g['id']]);
                         foreach ($prevTranches->fetchAll() as $t) {
-                            $db->prepare("INSERT INTO tranches (grille_id,numero,libelle_fr,libelle_en,montant,echeance_indicative)
-                                VALUES (?,?,?,?,?,?) ON CONFLICT (grille_id,numero) DO NOTHING")
-                                ->execute([$newGridId,$t['numero'],$t['libelle_fr'],$t['libelle_en'],$t['montant'],$t['echeance_indicative']]);
+                            try {
+                                $db->prepare("INSERT INTO tranches (grille_id,numero,libelle_fr,libelle_en,montant,echeance_indicative)
+                                    VALUES (?,?,?,?,?,?)")
+                                    ->execute([$newGridId,$t['numero'],$t['libelle_fr'],$t['libelle_en'],$t['montant'],$t['echeance_indicative']]);
+                            } catch (PDOException $e) { /* doublon ignoré */ }
                         }
                     }
                 }

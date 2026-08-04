@@ -40,7 +40,7 @@ $rows = $db->prepare("
             CASE WHEN EXISTS(
                 SELECT 1 FROM paiements px
                 WHERE px.eleve_id=e.id AND px.type_paiement='solde_complet' AND px.annule=FALSE
-            ) THEN COALESCE((SELECT valeur::numeric FROM parametres WHERE cle='reduction_paiement_complet'),2)
+            ) THEN COALESCE((SELECT CAST(valeur AS DECIMAL) FROM parametres WHERE cle='reduction_paiement_complet'),2)
               ELSE 0 END
         ) / 100.0) AS total_du
     FROM eleves e
