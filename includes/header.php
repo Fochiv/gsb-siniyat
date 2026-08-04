@@ -84,6 +84,9 @@ function navActive(string $path): string {
         <a class="nav-link<?= navActive('/admin/payments') ?>" href="/admin/payments.php">
             <i class="bi bi-receipt-cutoff"></i><span>Tous les paiements</span>
         </a>
+        <a class="nav-link<?= navActive('/secretary/unpaid') ?>" href="/secretary/unpaid.php">
+            <i class="bi bi-exclamation-circle"></i><span>Recouvrement</span>
+        </a>
 
         <div class="sidebar-section-label">Administration</div>
         <a class="nav-link<?= navActive('/admin/users') ?>" href="/admin/users.php">
@@ -124,6 +127,9 @@ function navActive(string $path): string {
         <div class="sidebar-section-label">Finances</div>
         <a class="nav-link<?= navActive('/secretary/payments') ?>" href="/secretary/payments.php">
             <i class="bi bi-cash-coin"></i><span data-i18n="nav.payments">Paiements</span>
+        </a>
+        <a class="nav-link<?= navActive('/secretary/unpaid') ?>" href="/secretary/unpaid.php">
+            <i class="bi bi-exclamation-circle"></i><span>Recouvrement</span>
         </a>
 
         <div class="sidebar-divider"></div>

@@ -151,15 +151,17 @@ include dirname(__DIR__) . '/includes/header.php';
         </div>
     </div>
     <div class="col-6 col-md-3">
-        <div class="card stat-card stat-danger h-100">
+        <a href="/secretary/unpaid.php?annee=<?= $yearId ?>&statut=impaye" class="text-decoration-none">
+        <div class="card stat-card stat-danger h-100" style="cursor:pointer;">
             <div class="card-body d-flex align-items-center justify-content-between">
                 <div>
-                    <div class="text-muted small" data-i18n="dashboard.total_remaining">Reste à recouvrer</div>
+                    <div class="text-muted small" data-i18n="dashboard.total_remaining">Reste à recouvrer <i class="bi bi-arrow-right-short"></i></div>
                     <div class="stat-value text-danger" style="font-size:1.2rem;"><?= formatMontant((float)($statRow['total_reste']??0)) ?></div>
                 </div>
                 <i class="bi bi-exclamation-circle stat-icon text-danger"></i>
             </div>
         </div>
+        </a>
     </div>
     <div class="col-6 col-md-3">
         <div class="card stat-card stat-warning h-100">

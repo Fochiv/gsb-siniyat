@@ -296,7 +296,23 @@ main { flex: 1; padding: 1.25rem; }
   padding: .75rem 1rem;
 }
 .table tbody td { vertical-align: middle; padding: .65rem 1rem; font-size: .9rem; }
-.table-responsive { border-radius: var(--border-radius); overflow: hidden; }
+/* Horizontal scroll on all screens — never hide overflow */
+.table-responsive {
+  border-radius: var(--border-radius);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* Keep rounded corners: clip the card wrapper, not the scroll container */
+.card > .table-responsive:first-child,
+.card-body > .table-responsive:first-child {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+.card > .table-responsive:last-child,
+.card-body > .table-responsive:last-child {
+  border-bottom-left-radius: calc(var(--border-radius) - 1px);
+  border-bottom-right-radius: calc(var(--border-radius) - 1px);
+}
 
 /* ---- Badges for payment status ---- */
 .badge-paye    { background-color: #d1fae5; color: #065f46; }
@@ -431,20 +447,7 @@ main { flex: 1; padding: 1.25rem; }
   }
 }
 
-/* ---- Mobile table: horizontal scroll (not stacking) ---- */
-/* Tables inside .table-responsive scroll horizontally on small screens */
-.table-responsive {
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-}
-
-/* Optional stacking for tables that explicitly opt in with .table-stack */
-@media (max-width: 575px) {
-  .table-stack thead { display: none; }
-  .table-stack tbody tr { display: block; margin-bottom: .5rem; border: 1px solid #e2e8f0; border-radius: .5rem; padding: .5rem; }
-  .table-stack tbody td { display: flex; justify-content: space-between; border: none; padding: .3rem .5rem; font-size: .85rem; }
-  .table-stack tbody td::before { content: attr(data-label); font-weight: 600; color: var(--siniyat-muted); flex: 1; min-width: 40%; }
-}
+/* ---- Horizontal scroll on all tables — never stack ---- */
 
 /* Print: always show tables in normal row/column layout */
 @media print {

@@ -84,9 +84,16 @@ include dirname(__DIR__) . '/includes/header.php';
         <i class="bi bi-list-ul"></i> Liste par classe
     </h1>
     <?php if ($niveauId && !empty($students)): ?>
-    <button onclick="window.print()" class="btn btn-outline-siniyat btn-sm">
-        <i class="bi bi-printer me-1"></i>Imprimer cette liste
-    </button>
+    <div class="d-flex gap-2">
+        <a href="/pdf/class_list.php?niveau_id=<?= $niveauId ?>&annee_id=<?= $yearId ?>" target="_blank"
+           class="btn btn-primary-siniyat btn-sm">
+            <i class="bi bi-file-earmark-pdf me-1"></i>PDF sans finances
+        </a>
+        <a href="/pdf/class_list.php?niveau_id=<?= $niveauId ?>&annee_id=<?= $yearId ?>&finances=1" target="_blank"
+           class="btn btn-outline-siniyat btn-sm">
+            <i class="bi bi-file-earmark-pdf me-1"></i>PDF avec statut paiement
+        </a>
+    </div>
     <?php endif; ?>
 </div>
 
@@ -243,11 +250,18 @@ include dirname(__DIR__) . '/includes/header.php';
                 </div>
             </div>
             <?php if (!empty($students)): ?>
-            <div class="card-footer text-muted small no-print d-flex justify-content-between">
+            <div class="card-footer text-muted small d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <span><?= $stats['total'] ?> élève(s) — <?= $stats['garcons'] ?> garçon(s), <?= $stats['filles'] ?> fille(s)</span>
-                <button onclick="window.print()" class="btn btn-sm btn-outline-siniyat py-0">
-                    <i class="bi bi-printer me-1"></i>Imprimer
-                </button>
+                <div class="d-flex gap-2">
+                    <a href="/pdf/class_list.php?niveau_id=<?= $niveauId ?>&annee_id=<?= $yearId ?>" target="_blank"
+                       class="btn btn-sm btn-primary-siniyat py-0">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>PDF liste
+                    </a>
+                    <a href="/pdf/class_list.php?niveau_id=<?= $niveauId ?>&annee_id=<?= $yearId ?>&finances=1" target="_blank"
+                       class="btn btn-sm btn-outline-siniyat py-0">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>PDF + finances
+                    </a>
+                </div>
             </div>
             <?php endif; ?>
         </div>
