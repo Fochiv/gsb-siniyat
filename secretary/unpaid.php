@@ -47,7 +47,7 @@ $rows = $db->prepare("
     JOIN niveaux n ON n.id = e.niveau_id
     LEFT JOIN paiements p ON p.eleve_id = e.id
     WHERE {$whereStr}
-    GROUP BY e.id, e.matricule, e.nom, e.prenoms, e.sexe, n.nom_fr, n.section, e.annee_id, e.niveau_id
+    GROUP BY e.id, e.matricule, e.nom, e.prenoms, e.sexe, n.nom_fr, n.section, n.id, n.ordre, e.annee_id, e.niveau_id
     ORDER BY n.ordre, e.nom, e.prenoms
 ");
 $rows->execute($params);

@@ -98,26 +98,25 @@ include dirname(__DIR__) . '/includes/header.php';
                            placeholder="Rechercher nom, matricule..." autocomplete="off">
                 </div>
                 <div id="student-suggestions" class="list-group mb-2"></div>
-                <?php if ($eleve): ?>
-                <div class="alert alert-info py-2 mb-0">
+                <div id="eleve-info-box" class="alert alert-info py-2 mb-0" <?= $eleve ? '' : 'style="display:none;"' ?>>
+                    <?php if ($eleve): ?>
                     <strong><?= e($eleve['nom'].' '.$eleve['prenoms']) ?></strong><br>
                     <small><code><?= e($eleve['matricule']) ?></code> — <?= e($eleve['niveau_nom']) ?> — <?= e($eleve['annee_libelle']) ?></small>
+                    <?php endif; ?>
                 </div>
-                <?php endif; ?>
             </div>
         </div>
 
-        <!-- Financial summary -->
-        <?php if ($eleve && !empty($situation)): ?>
-        <div class="card">
+        <!-- Financial summary — always in DOM, hidden when no student -->
+        <div class="card" <?= ($eleve && !empty($situation)) ? '' : 'style="display:none;"' ?>>
             <div class="card-header bg-primary-siniyat text-white">
                 <i class="bi bi-wallet2 me-2"></i>Situation financière
             </div>
-            <div class="card-body">
-                <?php
-                $statut = $situation['statut'];
-                $bgs   = ['paye'=>'badge-paye','partiel'=>'badge-partiel','impaye'=>'badge-impaye'];
-                $labels= ['paye'=>'Soldé','partiel'=>'Partiel','impaye'=>'Impayé'];
+            <div class="card-body" id="fin-summary-box">
+                <?php if ($eleve && !empty($situation)):
+                    $statut = $situation['statut'];
+                    $bgs   = ['paye'=>'badge-paye','partiel'=>'badge-partiel','impaye'=>'badge-impaye'];
+                    $labels= ['paye'=>'Soldé','partiel'=>'Partiel','impaye'=>'Impayé'];
                 ?>
                 <div class="d-flex gap-2 mb-3">
                     <span class="badge <?= $bgs[$statut] ?> fs-6"><?= $labels[$statut] ?></span>
@@ -149,13 +148,13 @@ include dirname(__DIR__) . '/includes/header.php';
                         <span><?= formatMontant((float)$t['paye']) ?>/<?= formatMontant((float)$t['montant']) ?></span>
                     </div>
                     <div class="progress" style="height:5px;">
-                        <div class="progress-bar bg-success" style="width:<?= min(100,round((float)$t['paye']/(float)$t['montant']*100)) ?>%"></div>
+                        <div class="progress-bar bg-success" style="width:<?= min(100,round((float)$t['paye']/(float)$t['montant']>0?(float)$t['paye']/(float)$t['montant']*100:0)) ?>%"></div>
                     </div>
                 </div>
                 <?php endforeach; ?>
+                <?php endif; ?>
             </div>
         </div>
-        <?php endif; ?>
     </div>
 
     <!-- Right: Payment form -->
@@ -174,19 +173,38 @@ include dirname(__DIR__) . '/includes/header.php';
                         <div class="col-md-6">
                             <label class="form-label" data-i18n="payment.installment">Tranche <span class="text-danger">*</span></label>
                             <select name="tranche_id" id="tranche_select" class="form-select" onchange="updateTypePaiement(this)">
-                                <option value="">-- Sélectionner --</option>
+                                <option value="">-- Sélectionner une tranche --</option>
                                 <?php if ($eleve && !empty($situation['tranches'])): ?>
-                                    <?php foreach ($situation['tranches'] as $t): ?>
-                                    <option value="<?= $t['id'] ?>" data-restant="<?= max(0,(float)$t['montant']-(float)$t['paye']) ?>">
-                                        <?= e($t['libelle_fr']) ?> (<?= formatMontant((float)$t['montant']) ?>)
+                                    <?php foreach ($situation['tranches'] as $t):
+                                        $restant = max(0,(float)$t['montant']-(float)$t['paye']);
+                                        $isPaid  = $restant <= 0;
+                                    ?>
+                                    <option value="<?= $t['id'] ?>"
+                                            data-restant="<?= $restant ?>"
+                                            <?= $isPaid ? 'style="color:#198754;"' : '' ?>>
+                                        <?= e($t['libelle_fr']) ?>
+                                        <?php if ($isPaid): ?>
+                                         ✓ Soldée
+                                        <?php else: ?>
+                                         — Reste : <?= formatMontant($restant) ?>
+                                        <?php endif; ?>
                                     </option>
                                     <?php endforeach; ?>
+                                <?php else: ?>
+                                    <?php if (!$eleve): ?>
+                                    <option value="" disabled style="color:#94a3b8;">⟵ Recherchez d'abord un élève</option>
+                                    <?php endif; ?>
                                 <?php endif; ?>
                                 <option value="__solde" data-restant="<?= max(0, ($situation['totalAvecReductionComplete'] ?? $situation['totalBrut'] ?? 0) - ($situation['paye'] ?? 0)) ?>" data-taux="<?= $situation['tauxReductionComplet'] ?? 0 ?>">
-                                    Paiement complet — Solde<?php if (($situation['tauxReductionComplet']??0)>0): ?> (<?= $situation['tauxReductionComplet'] ?>% réduction)<?php endif; ?>
+                                    🏦 Paiement complet — Solde intégral<?php if (($situation['tauxReductionComplet']??0)>0): ?> (<?= $situation['tauxReductionComplet'] ?>% réduction)<?php endif; ?>
                                 </option>
-                                <option value="__annexe">Frais annexes</option>
+                                <option value="__annexe">📋 Frais annexes</option>
                             </select>
+                            <?php if (!$eleve): ?>
+                            <div class="form-text text-warning">
+                                <i class="bi bi-arrow-up me-1"></i>Recherchez un élève ci-dessus pour voir ses tranches.
+                            </div>
+                            <?php endif; ?>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label" data-i18n="payment.amount">Montant versé (FCFA) <span class="text-danger">*</span></label>
@@ -255,29 +273,141 @@ include dirname(__DIR__) . '/includes/header.php';
 </div>
 
 <?php
+$firstUnpaidTranche = null;
+foreach (($situation['tranches'] ?? []) as $t) {
+    if (max(0, (float)$t['montant'] - (float)$t['paye']) > 0) {
+        $firstUnpaidTranche = (int)$t['id'];
+        break;
+    }
+}
+$eleveInfo = $eleve ? json_encode([
+    'nom' => $eleve['nom'], 'prenoms' => $eleve['prenoms'],
+    'matricule' => $eleve['matricule'], 'classe' => $eleve['niveau_nom'],
+    'annee' => $eleve['annee_libelle'],
+]) : 'null';
+
 $extraScripts = <<<HTML
 <script>
-// Student search autocomplete
+/* -------------------------------------------------------
+   Student search — AJAX (no page reload)
+------------------------------------------------------- */
 let searchTimer;
+let currentEleveId = {$eleveId};
+
 document.getElementById('student-search').addEventListener('input', function() {
     clearTimeout(searchTimer);
     const q = this.value.trim();
     if (q.length < 2) { document.getElementById('student-suggestions').innerHTML=''; return; }
     searchTimer = setTimeout(async () => {
-        const data = await apiGet('/api/students.php?q='+encodeURIComponent(q)+'&limit=8');
-        const box = document.getElementById('student-suggestions');
-        box.innerHTML = '';
-        (data.students||[]).forEach(s => {
-            const a = document.createElement('a');
-            a.href = '/secretary/payments.php?eleve_id='+s.id;
-            a.className = 'list-group-item list-group-item-action py-2';
-            a.innerHTML = '<strong>'+s.nom+' '+s.prenoms+'</strong> <small class="text-muted ms-2">'+s.matricule+' — '+s.classe+'</small>';
-            box.appendChild(a);
-        });
+        try {
+            const data = await apiGet('/api/students.php?q='+encodeURIComponent(q)+'&limit=8');
+            const box = document.getElementById('student-suggestions');
+            box.innerHTML = '';
+            (data.students||[]).forEach(s => {
+                const a = document.createElement('a');
+                a.href = '#';
+                a.className = 'list-group-item list-group-item-action py-2';
+                a.innerHTML = '<strong>'+s.nom+' '+s.prenoms+'</strong> <small class="text-muted ms-2">'+s.matricule+' — '+s.classe+'</small>';
+                a.addEventListener('click', e => { e.preventDefault(); loadEleve(s.id); });
+                box.appendChild(a);
+            });
+        } catch(e) {}
     }, 300);
 });
 
-// Tranche selection — prefill amount and type
+async function loadEleve(id) {
+    try {
+        const data = await apiGet('/api/student_situation.php?eleve_id='+id);
+        if (data.error) return;
+
+        currentEleveId = id;
+        document.getElementById('eleve_id_hidden').value = id;
+        document.getElementById('student-suggestions').innerHTML = '';
+        document.getElementById('student-search').value = '';
+
+        // Show student info
+        const infoBox = document.getElementById('eleve-info-box');
+        if (infoBox) {
+            infoBox.innerHTML = '<strong>'+data.eleve.nom+' '+data.eleve.prenoms+'</strong><br>'
+                +'<small><code>'+data.eleve.matricule+'</code> — '+data.eleve.classe+' — '+data.eleve.annee+'</small>';
+            infoBox.style.display = '';
+        }
+
+        // Update financial summary
+        updateFinancialSummary(data.situation, data.tranches);
+
+        // Populate tranche dropdown
+        const sel = document.getElementById('tranche_select');
+        const prevSelected = sel.value;
+        // Keep only the last two special options
+        while (sel.options.length > 1) sel.remove(1);
+        // Rebuild from end — insert tranches before special options
+        // Actually: clear all, rebuild completely
+        sel.innerHTML = '<option value="">-- Sélectionner une tranche --</option>';
+
+        let firstUnpaid = null;
+        data.tranches.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.id;
+            opt.setAttribute('data-restant', t.restant);
+            opt.textContent = t.label;
+            if (t.is_paid) opt.style.color = '#198754';
+            sel.appendChild(opt);
+            if (!firstUnpaid && !t.is_paid) firstUnpaid = opt;
+        });
+
+        // Solde complet option
+        const sit = data.situation;
+        const soldeRestant = Math.max(0, sit.totalAvecReductionComplete - sit.paye);
+        const soldeOpt = document.createElement('option');
+        soldeOpt.value = '__solde';
+        soldeOpt.setAttribute('data-restant', soldeRestant);
+        soldeOpt.setAttribute('data-taux', sit.tauxReductionComplet);
+        soldeOpt.textContent = '🏦 Paiement complet — Solde intégral' + (sit.tauxReductionComplet > 0 ? ' ('+sit.tauxReductionComplet+'% réduction)' : '');
+        sel.appendChild(soldeOpt);
+
+        const annexeOpt = document.createElement('option');
+        annexeOpt.value = '__annexe';
+        annexeOpt.textContent = '📋 Frais annexes';
+        sel.appendChild(annexeOpt);
+
+        // Enable submit button
+        document.querySelector('button[type=submit]').disabled = false;
+
+        // Auto-select first unpaid tranche
+        if (firstUnpaid) {
+            firstUnpaid.selected = true;
+            updateTypePaiement(sel);
+        }
+    } catch(e) { console.error(e); }
+}
+
+function updateFinancialSummary(sit, tranches) {
+    const box = document.getElementById('fin-summary-box');
+    if (!box) return;
+    const pct = sit.totalDu > 0 ? Math.min(100, Math.round(sit.paye / sit.totalDu * 100)) : 0;
+    const stClass = sit.statut === 'paye' ? 'badge-paye' : (sit.statut === 'partiel' ? 'badge-partiel' : 'badge-impaye');
+    const stLabel = sit.statut === 'paye' ? 'Soldé' : (sit.statut === 'partiel' ? 'Partiel' : 'Impayé');
+    const fmt = v => new Intl.NumberFormat('fr').format(v) + ' FCFA';
+    let trancheHtml = '';
+    tranches.forEach(t => {
+        const p = t.montant > 0 ? Math.min(100, Math.round(t.paye / t.montant * 100)) : 0;
+        trancheHtml += '<div class="mb-1 small"><div class="d-flex justify-content-between"><span>'+t.label.split(' — ')[0]+'</span>'
+            +'<span>'+fmt(t.paye)+'/'+fmt(t.montant)+'</span></div>'
+            +'<div class="progress" style="height:5px;"><div class="progress-bar bg-success" style="width:'+p+'%"></div></div></div>';
+    });
+    box.innerHTML = '<div class="d-flex gap-2 mb-3"><span class="badge '+stClass+' fs-6">'+stLabel+'</span></div>'
+        +'<div class="row g-2 text-center mb-3">'
+        +'<div class="col-4"><div class="p-2 bg-light rounded"><div class="small text-muted">Dû</div><div class="fw-bold small">'+fmt(sit.totalDu)+'</div></div></div>'
+        +'<div class="col-4"><div class="p-2 rounded" style="background:#d1fae5;"><div class="small text-muted">Payé</div><div class="fw-bold small text-success">'+fmt(sit.paye)+'</div></div></div>'
+        +'<div class="col-4"><div class="p-2 rounded" style="background:#fee2e2;"><div class="small text-muted">Reste</div><div class="fw-bold small text-danger">'+fmt(Math.max(0,sit.reste))+'</div></div></div>'
+        +'</div>'+trancheHtml;
+    box.closest('.card').style.display = '';
+}
+
+/* -------------------------------------------------------
+   Tranche selection — prefill amount and type
+------------------------------------------------------- */
 function updateTypePaiement(sel) {
     const opt = sel.options[sel.selectedIndex];
     const restant = parseFloat(opt.getAttribute('data-restant') || '0');
@@ -289,7 +419,6 @@ function updateTypePaiement(sel) {
     const tp = sel.value === '__solde' ? 'solde_complet' : (sel.value === '__annexe' ? 'annexe' : 'tranche');
     document.getElementById('type_paiement_hidden').value = tp;
 
-    // Show discount info when selecting full payment with reduction
     let hint = document.getElementById('montant-hint');
     if (!hint) {
         hint = document.createElement('div');
@@ -298,13 +427,27 @@ function updateTypePaiement(sel) {
         montantInput.parentNode.parentNode.appendChild(hint);
     }
     hint.innerHTML = (tp === 'solde_complet' && taux > 0)
-        ? '<i class="bi bi-tag text-success me-1"></i>Réduction <strong>' + taux + '%</strong> déjà appliquée pour paiement complet.'
+        ? '<i class="bi bi-tag text-success me-1"></i>Réduction <strong>'+taux+'%</strong> appliquée pour paiement complet.'
         : '';
 
-    // Blank tranche_id for special types
     if (sel.value.startsWith('__')) sel.name = '_tranche_noop';
     else sel.name = 'tranche_id';
 }
+
+// Auto-select first unpaid tranche on initial page load
+document.addEventListener('DOMContentLoaded', function() {
+    const sel = document.getElementById('tranche_select');
+    if (!sel || !currentEleveId) return;
+    const firstUnpaidId = {$firstUnpaidTranche};
+    if (!firstUnpaidId) return;
+    for (let i = 0; i < sel.options.length; i++) {
+        if (parseInt(sel.options[i].value) === firstUnpaidId) {
+            sel.selectedIndex = i;
+            updateTypePaiement(sel);
+            break;
+        }
+    }
+});
 
 // Bank fields toggle
 document.getElementById('mode_paiement').addEventListener('change', function() {

@@ -291,18 +291,30 @@ main { flex: 1; padding: 1.25rem; }
   color: #fff;
   font-weight: 600;
   font-size: .85rem;
-  white-space: nowrap;
+  white-space: nowrap;          /* headers never wrap */
   border-color: var(--siniyat-secondary);
   padding: .75rem 1rem;
 }
-.table tbody td { vertical-align: middle; padding: .65rem 1rem; font-size: .9rem; }
-/* Horizontal scroll on all screens — never hide overflow */
-.table-responsive {
-  border-radius: var(--border-radius);
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
+.table tbody td {
+  vertical-align: middle;
+  padding: .65rem 1rem;
+  font-size: .9rem;
+  white-space: nowrap;          /* cells never wrap — scroll horizontally instead */
 }
-/* Keep rounded corners: clip the card wrapper, not the scroll container */
+/* Long text columns may wrap if needed */
+.table tbody td.wrap { white-space: normal; min-width: 140px; }
+
+/* Horizontal scroll on ALL screens — no stacking, no overflow hidden */
+.table-responsive {
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  width: 100%;
+}
+/* Bootstrap sets overflow:auto at responsive breakpoints — ensure our rule wins */
+@media (max-width: 767.98px) {
+  .table-responsive { overflow-x: auto !important; }
+}
+/* Card corner radius fix */
 .card > .table-responsive:first-child,
 .card-body > .table-responsive:first-child {
   border-top-left-radius: 0;
