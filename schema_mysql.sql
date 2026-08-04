@@ -199,7 +199,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 -- Compte admin  (login: GSB-Siniyat  /  mot de passe: Siniyat@2026)
 INSERT IGNORE INTO utilisateurs (nom, prenom, login, mot_de_passe, role, actif)
 VALUES ('Admin', 'GSB', 'GSB-Siniyat',
-        '$2y$12$M3PMNM0CjUN8H6W1wo1YrOxMGJVFjcLNZ5xEIT8WTFZl7NWV/a2Ii', 'admin', 1);
+        '$2y$10$LplmfCFUnChAL3ZBCed6jOBqvoeTHTE38sseX.7uZ3UXyCR7Lo7hW', 'admin', 1);
 
 -- Année scolaire active
 INSERT IGNORE INTO annees_scolaires (libelle, statut) VALUES ('2026-2027', 'active');
