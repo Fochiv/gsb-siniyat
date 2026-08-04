@@ -16,7 +16,7 @@ $format   = strtolower($_GET['format'] ?? 'excel');
 if ($type === 'class' && $niveauId) {
     $stmt = $db->prepare("
         SELECT e.matricule, e.nom, e.prenoms, e.sexe,
-               TO_CHAR(e.date_naissance,'DD/MM/YYYY') AS date_naissance,
+               DATE_FORMAT(e.date_naissance,'%d/%m/%Y') AS date_naissance,
                e.quartier, e.nom_pere, e.tel_pere, e.nom_mere, e.tel_mere,
                n.nom_fr AS classe, a.libelle AS annee,
                e.statut_eleve,
@@ -35,7 +35,7 @@ if ($type === 'class' && $niveauId) {
 } elseif ($type === 'all_classes') {
     $stmt = $db->prepare("
         SELECT e.matricule, e.nom, e.prenoms, e.sexe,
-               TO_CHAR(e.date_naissance,'DD/MM/YYYY') AS date_naissance,
+               DATE_FORMAT(e.date_naissance,'%d/%m/%Y') AS date_naissance,
                e.quartier, e.nom_pere, e.tel_pere, e.nom_mere, e.tel_mere,
                n.nom_fr AS classe, a.libelle AS annee,
                e.statut_eleve,

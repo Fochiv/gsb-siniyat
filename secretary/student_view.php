@@ -62,7 +62,7 @@ $situation = getSituationFinanciere($id);
 
 // Payment history
 $payments = $db->prepare("
-    SELECT p.*, t.libelle_fr AS tranche_nom, u.prenom||' '||u.nom AS agent, r.numero_recu
+    SELECT p.*, t.libelle_fr AS tranche_nom, CONCAT(u.prenom,' ',u.nom) AS agent, r.numero_recu
     FROM paiements p
     LEFT JOIN tranches t ON t.id = p.tranche_id
     LEFT JOIN utilisateurs u ON u.id = p.encaisse_par

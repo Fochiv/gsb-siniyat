@@ -23,7 +23,7 @@ $pageTitle = $eleve ? 'Modifier un élève' : 'Inscrire un élève';
 $message = ''; $messageType = '';
 
 // Get families for linking siblings
-$familles = $db->query("SELECT DISTINCT famille_id, MIN(nom||' '||prenoms) AS repr
+$familles = $db->query("SELECT DISTINCT famille_id, MIN(CONCAT(nom,' ',prenoms)) AS repr
     FROM eleves WHERE famille_id IS NOT NULL GROUP BY famille_id ORDER BY repr")->fetchAll();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

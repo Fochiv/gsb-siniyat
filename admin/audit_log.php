@@ -16,20 +16,20 @@ $page = max(1, (int)($_GET['page'] ?? 1));
 $perPage = 50;
 $offset = ($page - 1) * $perPage;
 
-$sql = "SELECT j.*, u.prenom||' '||u.nom AS user_name, u.login
+$sql = "SELECT j.*, CONCAT(u.prenom,' ',u.nom) AS user_name, u.login
         FROM journal_audit j
         LEFT JOIN utilisateurs u ON u.id = j.utilisateur_id
         WHERE 1=1";
 $params = [];
 
 if ($filterUser) { $sql .= " AND j.utilisateur_id=?"; $params[] = $filterUser; }
-if ($filterAction) { $sql .= " AND j.action ILIKE ?"; $params[] = "%$filterAction%"; }
+if ($filterAction) { $sql .= " AND j.action LIKE ?"; $params[] = "%$filterAction%"; }
 if ($filterFrom) { $sql .= " AND j.date_heure >= ?"; $params[] = $filterFrom . ' 00:00:00'; }
 if ($filterTo) { $sql .= " AND j.date_heure <= ?"; $params[] = $filterTo . ' 23:59:59'; }
 
 $countStmt = $db->prepare("SELECT COUNT(*) FROM journal_audit j LEFT JOIN utilisateurs u ON u.id=j.utilisateur_id WHERE 1=1" .
     ($filterUser ? " AND j.utilisateur_id=$filterUser" : '') .
-    ($filterAction ? " AND j.action ILIKE '%$filterAction%'" : ''));
+    ($filterAction ? " AND j.action LIKE '%$filterAction%'" : ''));
 $countStmt->execute();
 $totalRows = (int)$countStmt->fetchColumn();
 $totalPages = ceil($totalRows / $perPage);
@@ -41,7 +41,7 @@ $stmt = $db->prepare($sql);
 $stmt->execute($params);
 $logs = $stmt->fetchAll();
 
-$users = $db->query("SELECT id, login, prenom||' '||nom AS name FROM utilisateurs ORDER BY nom")->fetchAll();
+$users = $db->query("SELECT id, login, CONCAT(prenom,' ',nom) AS name FROM utilisateurs ORDER BY nom")->fetchAll();
 
 include dirname(__DIR__) . '/includes/header.php';
 ?>

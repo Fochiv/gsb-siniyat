@@ -39,7 +39,7 @@ $offset = ($page - 1) * $perPage;
 $stmt = $db->prepare("
     SELECT p.*, e.nom, e.prenoms, e.matricule,
            n.nom_fr AS classe, n.section,
-           u.prenom||' '||u.nom AS agent_nom,
+           CONCAT(u.prenom,' ',u.nom) AS agent_nom,
            r.numero_recu
     FROM paiements p
     JOIN eleves e ON e.id = p.eleve_id
@@ -60,7 +60,7 @@ $totals = $totStmt->fetch();
 
 // Daily summary (today)
 $todayStmt = $db->prepare("
-    SELECT u.prenom||' '||u.nom AS agent, COUNT(*) AS nb, SUM(p.montant) AS total
+    SELECT CONCAT(u.prenom,' ',u.nom) AS agent, COUNT(*) AS nb, SUM(p.montant) AS total
     FROM paiements p
     JOIN eleves e ON e.id=p.eleve_id
     LEFT JOIN utilisateurs u ON u.id=p.encaisse_par
@@ -72,7 +72,7 @@ $todayStmt->execute([$yearId]);
 $todaySummary = $todayStmt->fetchAll();
 
 // Agent list for filter
-$agents = $db->query("SELECT id, prenom||' '||nom AS nom_complet FROM utilisateurs WHERE actif=TRUE ORDER BY nom")->fetchAll();
+$agents = $db->query("SELECT id, CONCAT(prenom,' ',nom) AS nom_complet FROM utilisateurs WHERE actif=TRUE ORDER BY nom")->fetchAll();
 
 include dirname(__DIR__) . '/includes/header.php';
 ?>

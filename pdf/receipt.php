@@ -18,7 +18,7 @@ $stmt = $db->prepare("
            e.nom, e.prenoms, e.matricule, e.sexe,
            n.nom_fr AS classe, n.nom_en AS classe_en,
            a.libelle AS annee,
-           u.prenom||' '||u.nom AS agent_nom,
+           CONCAT(u.prenom,' ',u.nom) AS agent_nom,
            t.libelle_fr AS tranche_nom, t.libelle_en AS tranche_nom_en
     FROM paiements p
     LEFT JOIN recus r ON r.paiement_id = p.id

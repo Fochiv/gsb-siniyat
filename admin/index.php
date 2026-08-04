@@ -39,7 +39,7 @@ $statuts = $db->prepare("
             ) * (1 - (
                 CASE WHEN EXISTS(
                     SELECT 1 FROM paiements px WHERE px.eleve_id=e.id AND px.type_paiement='solde_complet' AND px.annule=FALSE
-                ) THEN COALESCE((SELECT valeur::numeric FROM parametres WHERE cle='reduction_paiement_complet'),2) ELSE 0 END
+                ) THEN COALESCE((SELECT CAST(valeur AS DECIMAL) FROM parametres WHERE cle='reduction_paiement_complet'),2) ELSE 0 END
             ) / 100.0) AS total_du,
             CASE
                 WHEN COALESCE(SUM(CASE WHEN p.annule=FALSE THEN p.montant ELSE 0 END), 0) >=
@@ -47,7 +47,7 @@ $statuts = $db->prepare("
                                WHERE g.annee_id=e.annee_id AND g.niveau_id=e.niveau_id), 0)
                      * (1 - (CASE WHEN EXISTS(
                          SELECT 1 FROM paiements px WHERE px.eleve_id=e.id AND px.type_paiement='solde_complet' AND px.annule=FALSE
-                     ) THEN COALESCE((SELECT valeur::numeric FROM parametres WHERE cle='reduction_paiement_complet'),2) ELSE 0 END) / 100.0)
+                     ) THEN COALESCE((SELECT CAST(valeur AS DECIMAL) FROM parametres WHERE cle='reduction_paiement_complet'),2) ELSE 0 END) / 100.0)
                 THEN 'paye'
                 WHEN COALESCE(SUM(CASE WHEN p.annule=FALSE THEN p.montant ELSE 0 END), 0) > 0 THEN 'partiel'
                 ELSE 'impaye'
@@ -80,7 +80,7 @@ $classeStats = $byClass->fetchAll();
 
 // Recent payments
 $recentPay = $db->prepare("
-    SELECT p.*, e.nom, e.prenoms, e.matricule, n.nom_fr AS classe, u.prenom||' '||u.nom AS agent,
+    SELECT p.*, e.nom, e.prenoms, e.matricule, n.nom_fr AS classe, CONCAT(u.prenom,' ',u.nom) AS agent,
            r.numero_recu
     FROM paiements p
     JOIN eleves e ON e.id = p.eleve_id
@@ -95,7 +95,7 @@ $recentPayments = $recentPay->fetchAll();
 
 // Monthly chart data
 $monthly = $db->prepare("
-    SELECT TO_CHAR(p.date_paiement, 'YYYY-MM') AS mois,
+    SELECT DATE_FORMAT(p.date_paiement, '%Y-%m') AS mois,
            SUM(p.montant) AS total
     FROM paiements p
     JOIN eleves e ON e.id = p.eleve_id

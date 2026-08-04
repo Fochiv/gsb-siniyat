@@ -26,7 +26,7 @@ if ($q || $niveauId) {
             LEFT JOIN paiements p ON p.eleve_id = e.id
             WHERE e.actif = TRUE AND e.annee_id = ?";
     $params = [$anneeId];
-    if ($q) { $sql .= " AND (e.nom ILIKE ? OR e.prenoms ILIKE ? OR e.matricule ILIKE ?)"; $params[] = "%$q%"; $params[] = "%$q%"; $params[] = "%$q%"; }
+    if ($q) { $sql .= " AND (e.nom LIKE ? OR e.prenoms LIKE ? OR e.matricule LIKE ?)"; $params[] = "%$q%"; $params[] = "%$q%"; $params[] = "%$q%"; }
     if ($niveauId) { $sql .= " AND e.niveau_id = ?"; $params[] = $niveauId; }
     $sql .= " GROUP BY e.id, n.nom_fr, a.libelle ORDER BY e.nom, e.prenoms LIMIT 100";
     $stmt = $db->prepare($sql);

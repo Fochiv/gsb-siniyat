@@ -29,7 +29,7 @@ if ($method === 'GET' && $q) {
         JOIN niveaux n ON n.id = e.niveau_id
         JOIN annees_scolaires a ON a.id = e.annee_id
         WHERE e.actif = TRUE AND e.annee_id = ?
-          AND (e.nom ILIKE ? OR e.prenoms ILIKE ? OR e.matricule ILIKE ?)
+          AND (e.nom LIKE ? OR e.prenoms LIKE ? OR e.matricule LIKE ?)
         ORDER BY e.nom, e.prenoms LIMIT ?
     ");
     $stmt->execute([$anneeId, "%$q%", "%$q%", "%$q%", $limit]);
